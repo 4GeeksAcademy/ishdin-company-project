@@ -52,72 +52,63 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css" />
   <style>
-    .network-route-card {
+    .route-live-box {
       position: relative;
-      overflow: hidden;
-      border-color: rgba(245, 180, 66, 0.4);
-      background: linear-gradient(145deg, rgba(255, 250, 238, 0.98), rgba(247, 235, 204, 0.96));
-      box-shadow: 0 18px 36px rgba(28, 43, 57, 0.1);
-      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+      border-color: rgb(19 33 54 / 0.14);
+      box-shadow: 0 20px 32px -28px rgb(19 33 54 / 0.45);
+      transition: transform 280ms ease, box-shadow 280ms ease, border-color 280ms ease, background-color 280ms ease;
+      background:
+        radial-gradient(circle at 10% 18%, rgb(255 184 0 / 0.14), transparent 42%),
+        linear-gradient(135deg, rgb(255 255 255), rgb(245 247 251));
     }
 
-    .network-route-card::before {
-      content: "";
-      position: absolute;
-      inset: 0 auto 0 0;
-      width: 6px;
-      background: linear-gradient(180deg, #f5b442, #de7f2a);
-    }
-
-    .network-route-card::after {
+    .route-live-box::after {
       content: "";
       position: absolute;
       inset: 0;
-      background:
-        radial-gradient(circle at top right, rgba(245, 180, 66, 0.2), transparent 36%),
-        linear-gradient(120deg, transparent 18%, rgba(255, 255, 255, 0.2) 52%, transparent 76%);
-      opacity: 0.92;
-      transition: opacity 180ms ease, transform 180ms ease;
       pointer-events: none;
+      opacity: 0;
+      transition: opacity 280ms ease;
+      background: linear-gradient(120deg, transparent 20%, rgb(255 255 255 / 0.45) 44%, transparent 68%);
+      transform: translateX(-22%);
     }
 
-    .network-route-label,
-    .network-route-map {
-      position: relative;
-      z-index: 1;
-    }
-
-    .network-route-label {
-      color: #b25d12;
-      letter-spacing: 0.22em;
-    }
-
-    .network-route-map {
-      transition: transform 180ms ease, filter 180ms ease;
-    }
-
-    .network-route-card:hover,
-    .network-route-card:focus-within {
+    .route-live-box:hover,
+    .route-live-box:focus-within {
       transform: translateY(-5px);
-      border-color: rgba(222, 127, 42, 0.8);
-      background: linear-gradient(145deg, rgba(255, 248, 232, 1), rgba(244, 227, 186, 0.98));
-      box-shadow: 0 26px 52px rgba(28, 43, 57, 0.16);
+      border-color: rgb(255 184 0 / 0.7);
+      box-shadow: 0 28px 38px -24px rgb(19 33 54 / 0.5);
+      background-color: rgb(255 255 255);
     }
 
-    .network-route-card:hover::after,
-    .network-route-card:focus-within::after {
-      transform: translateX(4px);
+    .route-live-box:hover::after,
+    .route-live-box:focus-within::after {
       opacity: 1;
+      animation: routeBoxSheen 850ms ease-out forwards;
     }
 
-    .network-route-card:hover .network-route-map,
-    .network-route-card:focus-within .network-route-map {
-      transform: scale(1.02);
-      filter: saturate(1.12);
+    .route-live-box-label {
+      transition: color 220ms ease, letter-spacing 220ms ease;
+    }
+
+    .route-live-box:hover .route-live-box-label,
+    .route-live-box:focus-within .route-live-box-label {
+      color: rgb(19 33 54 / 0.92);
+      letter-spacing: 0.24em;
+    }
+
+    @keyframes routeBoxSheen {
+      from {
+        transform: translateX(-22%);
+      }
+      to {
+        transform: translateX(22%);
+      }
     }
   </style>
+
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="bg-paper text-ink font-sans antialiased">
 
@@ -228,9 +219,9 @@
 
           <!-- Signature route graphic -->
           <div class="relative">
-            <div class="network-route-card border border-ink/15 bg-white rounded-sm p-5 sm:p-8">
-              <p class="network-route-label font-mono text-[10px] uppercase tracking-[0.2em] text-steel mb-4">Live network — reference route</p>
-              <svg viewBox="0 0 400 300" class="network-route-map w-full h-auto" role="img" aria-label="Route map connecting the Los Angeles warehouse in the United States with the Zaragoza warehouse in Spain">
+            <div class="route-live-box border border-ink/15 bg-white rounded-sm p-5 sm:p-8">
+              <p class="route-live-box-label font-mono text-[10px] uppercase tracking-[0.2em] text-steel mb-4">Live network — reference route</p>
+              <svg viewBox="0 0 400 300" class="w-full h-auto" role="img" aria-label="Route map connecting the Los Angeles warehouse in the United States with the Zaragoza warehouse in Spain">
                 <!-- grid -->
                 <g class="stroke-ink/5">
                   <line x1="0" y1="60" x2="400" y2="60" stroke-width="1"/>
@@ -281,16 +272,16 @@
         <div class="mt-14 grid md:grid-cols-3 gap-6">
 
           <!-- Service 01 -->
-          <article class="service-card service-card-warehouse border border-ink/15 rounded-sm p-7 flex flex-col">
+          <article class="border border-ink/15 rounded-sm p-7 flex flex-col">
             <div class="flex items-center justify-between">
-              <svg viewBox="0 0 24 24" class="service-card-icon w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
                 <path d="M3 9.5 12 4l9 5.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" stroke-linejoin="round" />
                 <path d="M9 20v-7h6v7" stroke-linejoin="round" />
                 <path d="M3 9.5 12 15l9-5.5" />
               </svg>
-              <span class="service-card-index font-mono text-xs text-steel">01 / 03</span>
+              <span class="font-mono text-xs text-steel">01 / 03</span>
             </div>
-            <h3 class="service-card-title mt-6 font-display font-bold text-xl text-ink">Warehouse Management</h3>
+            <h3 class="mt-6 font-display font-bold text-xl text-ink">Warehouse Management</h3>
             <ul class="mt-4 space-y-3 text-sm text-ink/70 leading-relaxed">
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Storage, picking and packing</span></li>
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Real-time inventory</span></li>
@@ -299,17 +290,17 @@
           </article>
 
           <!-- Service 02 -->
-          <article class="service-card service-card-deliveries border border-ink/15 rounded-sm p-7 flex flex-col">
+          <article class="border border-ink/15 rounded-sm p-7 flex flex-col">
             <div class="flex items-center justify-between">
-              <svg viewBox="0 0 24 24" class="service-card-icon w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
                 <path d="M2 8h11v9H2z" stroke-linejoin="round" />
                 <path d="M13 11h4l4 3.5V17h-8z" stroke-linejoin="round" />
                 <circle cx="6" cy="18.5" r="1.8" />
                 <circle cx="17.5" cy="18.5" r="1.8" />
               </svg>
-              <span class="service-card-index font-mono text-xs text-steel">02 / 03</span>
+              <span class="font-mono text-xs text-steel">02 / 03</span>
             </div>
-            <h3 class="service-card-title mt-6 font-display font-bold text-xl text-ink">Last-Mile Deliveries</h3>
+            <h3 class="mt-6 font-display font-bold text-xl text-ink">Last-Mile Deliveries</h3>
             <ul class="mt-4 space-y-3 text-sm text-ink/70 leading-relaxed">
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Certified carrier network in both countries</span></li>
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Unified shipment tracking</span></li>
@@ -318,15 +309,15 @@
           </article>
 
           <!-- Service 03 -->
-          <article class="service-card service-card-reverse border border-ink/15 rounded-sm p-7 flex flex-col">
+          <article class="border border-ink/15 rounded-sm p-7 flex flex-col">
             <div class="flex items-center justify-between">
-              <svg viewBox="0 0 24 24" class="service-card-icon w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
                 <path d="M4 5v5h5" stroke-linecap="round" stroke-linejoin="round" />
                 <path d="M4.5 10A8 8 0 1 1 6 16" stroke-linecap="round" />
               </svg>
-              <span class="service-card-index font-mono text-xs text-steel">03 / 03</span>
+              <span class="font-mono text-xs text-steel">03 / 03</span>
             </div>
-            <h3 class="service-card-title mt-6 font-display font-bold text-xl text-ink">Reverse Logistics</h3>
+            <h3 class="mt-6 font-display font-bold text-xl text-ink">Reverse Logistics</h3>
             <ul class="mt-4 space-y-3 text-sm text-ink/70 leading-relaxed">
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Complete returns management</span></li>
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Inspection and reconditioning</span></li>
@@ -508,6 +499,21 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var navToggle = document.getElementById('nav-toggle');
+      var mobileNav = document.querySelector('nav[aria-label="Mobile"]');
+
+      if (!navToggle || !mobileNav) return;
+
+      mobileNav.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          navToggle.checked = false;
+        });
+      });
+    });
+  </script>
 
 </body>
 </html>
