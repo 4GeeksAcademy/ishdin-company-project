@@ -53,6 +53,71 @@
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .network-route-card {
+      position: relative;
+      overflow: hidden;
+      border-color: rgba(245, 180, 66, 0.4);
+      background: linear-gradient(145deg, rgba(255, 250, 238, 0.98), rgba(247, 235, 204, 0.96));
+      box-shadow: 0 18px 36px rgba(28, 43, 57, 0.1);
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .network-route-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 6px;
+      background: linear-gradient(180deg, #f5b442, #de7f2a);
+    }
+
+    .network-route-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(245, 180, 66, 0.2), transparent 36%),
+        linear-gradient(120deg, transparent 18%, rgba(255, 255, 255, 0.2) 52%, transparent 76%);
+      opacity: 0.92;
+      transition: opacity 180ms ease, transform 180ms ease;
+      pointer-events: none;
+    }
+
+    .network-route-label,
+    .network-route-map {
+      position: relative;
+      z-index: 1;
+    }
+
+    .network-route-label {
+      color: #b25d12;
+      letter-spacing: 0.22em;
+    }
+
+    .network-route-map {
+      transition: transform 180ms ease, filter 180ms ease;
+    }
+
+    .network-route-card:hover,
+    .network-route-card:focus-within {
+      transform: translateY(-5px);
+      border-color: rgba(222, 127, 42, 0.8);
+      background: linear-gradient(145deg, rgba(255, 248, 232, 1), rgba(244, 227, 186, 0.98));
+      box-shadow: 0 26px 52px rgba(28, 43, 57, 0.16);
+    }
+
+    .network-route-card:hover::after,
+    .network-route-card:focus-within::after {
+      transform: translateX(4px);
+      opacity: 1;
+    }
+
+    .network-route-card:hover .network-route-map,
+    .network-route-card:focus-within .network-route-map {
+      transform: scale(1.02);
+      filter: saturate(1.12);
+    }
+  </style>
 </head>
 <body class="bg-paper text-ink font-sans antialiased">
 
@@ -163,9 +228,9 @@
 
           <!-- Signature route graphic -->
           <div class="relative">
-            <div class="border border-ink/15 bg-white rounded-sm p-5 sm:p-8">
-              <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-steel mb-4">Live network — reference route</p>
-              <svg viewBox="0 0 400 300" class="w-full h-auto" role="img" aria-label="Route map connecting the Los Angeles warehouse in the United States with the Zaragoza warehouse in Spain">
+            <div class="network-route-card border border-ink/15 bg-white rounded-sm p-5 sm:p-8">
+              <p class="network-route-label font-mono text-[10px] uppercase tracking-[0.2em] text-steel mb-4">Live network — reference route</p>
+              <svg viewBox="0 0 400 300" class="network-route-map w-full h-auto" role="img" aria-label="Route map connecting the Los Angeles warehouse in the United States with the Zaragoza warehouse in Spain">
                 <!-- grid -->
                 <g class="stroke-ink/5">
                   <line x1="0" y1="60" x2="400" y2="60" stroke-width="1"/>
@@ -216,16 +281,16 @@
         <div class="mt-14 grid md:grid-cols-3 gap-6">
 
           <!-- Service 01 -->
-          <article class="border border-ink/15 rounded-sm p-7 flex flex-col">
+          <article class="service-card service-card-warehouse border border-ink/15 rounded-sm p-7 flex flex-col">
             <div class="flex items-center justify-between">
-              <svg viewBox="0 0 24 24" class="w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="service-card-icon w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
                 <path d="M3 9.5 12 4l9 5.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" stroke-linejoin="round" />
                 <path d="M9 20v-7h6v7" stroke-linejoin="round" />
                 <path d="M3 9.5 12 15l9-5.5" />
               </svg>
-              <span class="font-mono text-xs text-steel">01 / 03</span>
+              <span class="service-card-index font-mono text-xs text-steel">01 / 03</span>
             </div>
-            <h3 class="mt-6 font-display font-bold text-xl text-ink">Warehouse Management</h3>
+            <h3 class="service-card-title mt-6 font-display font-bold text-xl text-ink">Warehouse Management</h3>
             <ul class="mt-4 space-y-3 text-sm text-ink/70 leading-relaxed">
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Storage, picking and packing</span></li>
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Real-time inventory</span></li>
@@ -234,17 +299,17 @@
           </article>
 
           <!-- Service 02 -->
-          <article class="border border-ink/15 rounded-sm p-7 flex flex-col">
+          <article class="service-card service-card-deliveries border border-ink/15 rounded-sm p-7 flex flex-col">
             <div class="flex items-center justify-between">
-              <svg viewBox="0 0 24 24" class="w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="service-card-icon w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
                 <path d="M2 8h11v9H2z" stroke-linejoin="round" />
                 <path d="M13 11h4l4 3.5V17h-8z" stroke-linejoin="round" />
                 <circle cx="6" cy="18.5" r="1.8" />
                 <circle cx="17.5" cy="18.5" r="1.8" />
               </svg>
-              <span class="font-mono text-xs text-steel">02 / 03</span>
+              <span class="service-card-index font-mono text-xs text-steel">02 / 03</span>
             </div>
-            <h3 class="mt-6 font-display font-bold text-xl text-ink">Last-Mile Deliveries</h3>
+            <h3 class="service-card-title mt-6 font-display font-bold text-xl text-ink">Last-Mile Deliveries</h3>
             <ul class="mt-4 space-y-3 text-sm text-ink/70 leading-relaxed">
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Certified carrier network in both countries</span></li>
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Unified shipment tracking</span></li>
@@ -253,15 +318,15 @@
           </article>
 
           <!-- Service 03 -->
-          <article class="border border-ink/15 rounded-sm p-7 flex flex-col">
+          <article class="service-card service-card-reverse border border-ink/15 rounded-sm p-7 flex flex-col">
             <div class="flex items-center justify-between">
-              <svg viewBox="0 0 24 24" class="w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="service-card-icon w-9 h-9 stroke-ink" fill="none" stroke-width="1.5" aria-hidden="true">
                 <path d="M4 5v5h5" stroke-linecap="round" stroke-linejoin="round" />
                 <path d="M4.5 10A8 8 0 1 1 6 16" stroke-linecap="round" />
               </svg>
-              <span class="font-mono text-xs text-steel">03 / 03</span>
+              <span class="service-card-index font-mono text-xs text-steel">03 / 03</span>
             </div>
-            <h3 class="mt-6 font-display font-bold text-xl text-ink">Reverse Logistics</h3>
+            <h3 class="service-card-title mt-6 font-display font-bold text-xl text-ink">Reverse Logistics</h3>
             <ul class="mt-4 space-y-3 text-sm text-ink/70 leading-relaxed">
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Complete returns management</span></li>
               <li class="flex gap-2"><span class="text-signal mt-1" aria-hidden="true">&#9642;</span><span>Inspection and reconditioning</span></li>
