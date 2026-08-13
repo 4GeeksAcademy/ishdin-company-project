@@ -13,17 +13,35 @@ export interface Product {
 }
 
 export interface Carrier {
-    id: string;
-    name: string;
-    operatesIn: OperatesIn;
-    baseRateUSD: number;
-    ratePerKgUSD: number;
-    ratePerKmUSD: number;
-    avgDeliveryDays: number;
-    onTimeRate: number;
-    maxWeightKg: number;
-    handlesFragile: boolean;
-    acceptsPriority: AcceptsPriority;
+  id: string;
+  name: string;
+  operatesIn: OperatesIn;
+  baseRateUSD: number;
+  ratePerKgUSD: number;
+  ratePerKmUSD: number;
+  avgDeliveryDays: number;
+  onTimeRate: number;
+  maxWeightKg: number;
+  handlesFragile: boolean;
+  acceptsPriority: AcceptsPriority;
+}
+
+export interface Shipment {
+  id: string;
+  sku: string;
+  quantity: number;
+  origin: string;
+  destination: {
+    city: string;
+    country: string;
+    postalCode: string;
+    distanceKm: number;
+  },
+  priority: string;
+  declaredValueUSD: number;
+  carrier: null;
+  status: string;
+  createdAt: Date;
 }
 
 export interface Dimensions {
@@ -42,56 +60,56 @@ export type ProductCategory =
 export type WarehouseLocation = "Los Angeles" | "Zaragoza";
 export type ProductStatus = "Active" | "Low stock" | "Out of stock" | "Discontinued";
 
-export type PriorityLevel = "Standard"| "Express" | "Same-day";
+export type PriorityLevel = "Standard" | "Express" | "Same-day";
 export type AcceptsPriority = PriorityLevel[];
 export type ListOfCountry = "United States" | "Spain";
 export type OperatesIn = ListOfCountry[];
 
 
-  export const sampleProducts: Product[] = [
-    {
-      sku: "SHOE-BLK-42",
-      name: "Black Running Shoes - Size 42",
-      category: "Fashion",
-      weightKg: 0.8,
-      // weightKg: -1,
-      dimensions: { lengthCm: 35, widthCm: 22, heightCm: 12 },
-      warehouse: "Los Angeles",
-      stockQuantity: 45,
-      minStockThreshold: 20,
-      unitCostUSD: 35.0,
-      isFragile: false,
-      status: "Active",
-    },
-    {
-      sku: "LAPTOP-DELL-15",
-      name: "Dell Laptop 15 inch",
-      category: "Electronics",
-      weightKg: 2.3,
-      dimensions: { lengthCm: 40, widthCm: 28, heightCm: 3 },
-      warehouse: "Zaragoza",
-      stockQuantity: 8,
-      minStockThreshold: 10,
-      unitCostUSD: 650.0,
-      isFragile: true,
-      status: "Low stock",
-    },
-    {
-      sku: "PERFUME-COCO-50",
-      name: "Coco Perfume 50ml",
-      category: "Cosmetics",
-      weightKg: 0.3,
-      dimensions: { lengthCm: 12, widthCm: 8, heightCm: 15 },
-      warehouse: "Los Angeles",
-      stockQuantity: 120,
-      minStockThreshold: 30,
-      unitCostUSD: 85.0,
-      isFragile: true,
-      status: "Active",
-    },
-  ];
+export const sampleProducts: Product[] = [
+  {
+    sku: "SHOE-BLK-42",
+    name: "Black Running Shoes - Size 42",
+    category: "Fashion",
+    weightKg: 0.8,
+    // weightKg: -1,
+    dimensions: { lengthCm: 35, widthCm: 22, heightCm: 12 },
+    warehouse: "Los Angeles",
+    stockQuantity: 45,
+    minStockThreshold: 20,
+    unitCostUSD: 35.0,
+    isFragile: false,
+    status: "Active",
+  },
+  {
+    sku: "LAPTOP-DELL-15",
+    name: "Dell Laptop 15 inch",
+    category: "Electronics",
+    weightKg: 2.3,
+    dimensions: { lengthCm: 40, widthCm: 28, heightCm: 3 },
+    warehouse: "Zaragoza",
+    stockQuantity: 8,
+    minStockThreshold: 10,
+    unitCostUSD: 650.0,
+    isFragile: true,
+    status: "Low stock",
+  },
+  {
+    sku: "PERFUME-COCO-50",
+    name: "Coco Perfume 50ml",
+    category: "Cosmetics",
+    weightKg: 0.3,
+    dimensions: { lengthCm: 12, widthCm: 8, heightCm: 15 },
+    warehouse: "Los Angeles",
+    stockQuantity: 120,
+    minStockThreshold: 30,
+    unitCostUSD: 85.0,
+    isFragile: true,
+    status: "Active",
+  },
+];
 
-  export const sampleCarriers: Carrier[] = [
+export const sampleCarriers: Carrier[] = [
   {
     id: "CAR-UPS",
     name: "UPS",
@@ -130,5 +148,25 @@ export type OperatesIn = ListOfCountry[];
     maxWeightKg: 50,
     handlesFragile: true,
     acceptsPriority: ["Express", "Same-day"],
+  },
+];
+
+export const sampleShipment: Shipment[] = [
+  {
+    id: "SH-2024-8821",
+    sku: "LAPTOP-DELL-15",
+    quantity: 1,
+    origin: "Zaragoza",
+    destination: {
+      city: "Madrid",
+      country: "Spain",
+      postalCode: "28001",
+      distanceKm: 320,
+    },
+    priority: "Express",
+    declaredValueUSD: 650.0,
+    carrier: null,
+    status: "Pending",
+    createdAt: new Date("2024-03-15"),
   },
 ];
