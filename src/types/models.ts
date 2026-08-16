@@ -39,7 +39,7 @@ export interface Shipment {
   },
   priority: string;
   declaredValueUSD: number;
-  carrier: null;
+  carrier: string;
   status: string;
   createdAt: Date;
 }
@@ -165,7 +165,7 @@ export const sampleShipment: Shipment[] = [
     },
     priority: "Express",
     declaredValueUSD: 650.0,
-    carrier: null,
+    carrier: "CAR-UPS",
     status: "Pending",
     createdAt: new Date("2024-03-15"),
   },
