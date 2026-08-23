@@ -1,6 +1,5 @@
 import { Product, Shipment, Carrier } from "../types/models";
 import { sampleProducts, sampleCarriers, sampleShipment } from "../types/models";
-import { ListOfCountry } from "../types/models";
 
 function calculateShippingCost(shipment: Shipment[], product: Product[], carrier: Carrier[]): number | string {
     let storeProdSku = [];
@@ -98,14 +97,43 @@ function scoreCarrierForShipment(carrier: Carrier[], shipment: Shipment[], produ
 function selectBestCarrier(carriers: Carrier[], shipment: Shipment[], product: Product[]): { carrier: Carrier, score: number, cost: number } | null {
     const carrierScores = scoreCarrierForShipment(carriers, shipment, product);
     let bestCarrier: { carrier: Carrier, score: number, cost: number } | null = null;
+    const carrierCostOptions: Array<{ carrier: Carrier, score: number, cost: number }> = [];
 
     for (const carrierScore of carrierScores) {
         if (carrierScore.addPoints < 200) {
-            let calculateCost = calculateShippingCost(shipment, product, carriers.filter(c => c.id === carrierScore.carrierName));
-        
-          console.log(calculateCost)
+            const matchedCarrier = carriers.find(c => c.id === carrierScore.carrierName);
+            if (!matchedCarrier) {
+                continue;
+            }
+
+            const calculateCost = calculateShippingCost(shipment, product, [matchedCarrier]);
+            const numericCost = typeof calculateCost === "number"
+                ? calculateCost
+                : Number(calculateCost.match(/(\d+(?:\.\d+)?)$/)?.[1]);
+
+            if (!Number.isFinite(numericCost)) {
+                continue;
+            }
+
+            carrierCostOptions.push({
+                carrier: matchedCarrier,
+                score: carrierScore.addPoints,
+                cost: numericCost,
+            });
         }
     }
+
+    if (carrierCostOptions.length === 0) {
+        return null;
+    }
+
+    bestCarrier = carrierCostOptions[0];
+    for (let i = 1; i < carrierCostOptions.length; i++) {
+        if (carrierCostOptions[i].cost < bestCarrier.cost) {
+            bestCarrier = carrierCostOptions[i];
+        }
+    }
+
     return bestCarrier;
 }
 
@@ -177,14 +205,14 @@ function findTopCarriers(shipments: Shipment[], topN: number): Array<{ carrier: 
 
 
 
-// console.log(calculateShippingCost(sampleShipment, sampleProducts, sampleCarriers))
-// console.log(scoreCarrierForShipment(sampleCarriers, sampleShipment, sampleProducts))
+console.log(calculateShippingCost(sampleShipment, sampleProducts, sampleCarriers))
+console.log(scoreCarrierForShipment(sampleCarriers, sampleShipment, sampleProducts))
 console.log(selectBestCarrier(sampleCarriers, sampleShipment, sampleProducts))
-// console.log(countProductsByCategory(sampleProducts))
-// console.log(calculateTotalInventoryValue(sampleProducts))
-// console.log(calculateAverageShipmentDistance(sampleShipment))
-// console.log(groupShipmentsByStatus(sampleShipment))
-// console.log(findTopCarriers(sampleShipment, 3))
+console.log(countProductsByCategory(sampleProducts))
+console.log(calculateTotalInventoryValue(sampleProducts))
+console.log(calculateAverageShipmentDistance(sampleShipment))
+console.log(groupShipmentsByStatus(sampleShipment))
+console.log(findTopCarriers(sampleShipment, 3))
 
 
 
