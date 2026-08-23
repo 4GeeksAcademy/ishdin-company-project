@@ -154,7 +154,7 @@ export const sampleCarriers: Carrier[] = [
 export const sampleShipment: Shipment[] = [
   {
     id: "SH-2024-8821",
-    sku: "LAPTOP-DELL-15",
+    sku: "SHOE-BLK-42",
     quantity: 1,
     origin: "Zaragoza",
     destination: {
@@ -166,7 +166,41 @@ export const sampleShipment: Shipment[] = [
     priority: "Express",
     declaredValueUSD: 650.0,
     carrier: "CAR-UPS",
+    status: "Active",
+    createdAt: new Date("2024-03-15"),
+  },
+  {
+    id: "SH-2024-8822",
+    sku: "LAPTOP-DELL-15",
+    quantity: 1,
+    origin: "Los Angeles",
+    destination: {
+      city: "Los Angeles",
+      country: "United States",
+      postalCode: "90001",
+      distanceKm: 100,
+    },
+    priority: "Express",
+    declaredValueUSD: 120.0,
+    carrier: "CAR-UPS",
     status: "Pending",
     createdAt: new Date("2024-03-15"),
   },
+  {
+    id: "SH-2024-8823",
+    sku: "PERFUME-COCO-50",
+    quantity: 2,
+    origin: "Zaragoza",
+    destination: {
+      city: "Barcelona",
+      country: "Spain",
+      postalCode: "08001",
+      distanceKm: 120,
+    },
+    priority: "Standard",
+    declaredValueUSD: 240.0,
+    carrier: "CAR-SEUR",
+    status: "Pending",
+    createdAt: new Date("2024-03-16"),
+  }
 ];

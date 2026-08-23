@@ -38,54 +38,155 @@ function calculateShippingCost(shipment: Shipment[], product: Product[], carrier
     return `>>>> Total shiping cost is :: ${total}`;
 }
 
-function scoreCarrierForShipment(carrier: Carrier[], shipment: Shipment[], product: Product[]): number | string {
-    let storeProdSku = [];
-    let storeShipCarrier = [];  
-    let addPoints: number = 0;
+function scoreCarrierForShipment(carrier: Carrier[], shipment: Shipment[], product: Product[]): Array<{ carrierName: string, addPoints: number }> {
+
+    let storeProdSku: string[] = [];
+    let storeShipCarrier: { carrierName: string, addPoints: number }[] = [];
+
     for (let gama = 0; gama < product.length; gama++) {
         storeProdSku.push(product[gama].sku)
 
         for (let beta = 0; beta < shipment.length; beta++) {
             if (shipment[beta].sku === storeProdSku[gama]) {
-                storeShipCarrier.push(shipment[beta].carrier)
+                const matchedCarrier = carrier.find(c => c.id === shipment[beta].carrier);
 
-                for (let i = 0; i < carrier.length; i++) {
-                    if (carrier[i].operatesIn.includes("Spain")) {
-                        addPoints += 20;
-                        console.log(`${carrier[i].name} Carrrier opearates in Spain`)
+                if (matchedCarrier) {
+                    let existingCarrier = storeShipCarrier.find(c => c.carrierName === matchedCarrier.id);
+
+                    if (!existingCarrier) {
+                        existingCarrier = { carrierName: matchedCarrier.id, addPoints: 0 };
+                        storeShipCarrier.push(existingCarrier);
                     }
-                    if (carrier[i].operatesIn.includes("United States")) {
-                        addPoints += 20;
-                        console.log(`${carrier[i].name} Carrrier opearates in United States`)
-                    }
-                    if (product[gama].weightKg * shipment[beta].quantity <= carrier[i].maxWeightKg) {
-                        addPoints += 20
-                    }
-                    if (carrier[i].acceptsPriority.length > 0) {
-                        addPoints += 15
-                    }
-                    if (product[gama].isFragile && carrier[i].handlesFragile) {
-                        addPoints += 15
-                    }
-                    if (product[gama].isFragile === false) {
-                        addPoints += 15
-                    }
-                    if (product[gama].isFragile && carrier[i].handlesFragile === false) {
-                        addPoints += 15
-                    }
-                    if (carrier[i].onTimeRate > 0) {
-                        addPoints += carrier[i].onTimeRate * 0.3
-                    }
+
+                    calculateCarrierScore(existingCarrier, matchedCarrier, shipment[beta], product[gama]);
                 }
             }
         }
     }
 
-    return `>>> Suitability scroe for the carrier:: ${addPoints.toFixed(2)} `
+    return storeShipCarrier;
 
+    function calculateCarrierScore(existingCarrier: { carrierName: string, addPoints: number }, matchedCarrier: Carrier, currentShipment: Shipment, currentProduct: Product) {
+        if (matchedCarrier.operatesIn.includes("Spain")) {
+            existingCarrier.addPoints += 20;
+        }
+        if (matchedCarrier.operatesIn.includes("United States")) {
+            existingCarrier.addPoints += 20;
+        }
+        if (currentProduct.weightKg * currentShipment.quantity <= matchedCarrier.maxWeightKg) {
+            existingCarrier.addPoints += 20
+        }
+        if (matchedCarrier.acceptsPriority.length > 0) {
+            existingCarrier.addPoints += 15
+        }
+        if (currentProduct.isFragile && matchedCarrier.handlesFragile) {
+            existingCarrier.addPoints += 15
+        }
+        if (currentProduct.isFragile === false) {
+            existingCarrier.addPoints += 15
+        }
+        if (currentProduct.isFragile && matchedCarrier.handlesFragile === false) {
+            existingCarrier.addPoints += 15
+        }
+        if (matchedCarrier.onTimeRate > 0) {
+            existingCarrier.addPoints += matchedCarrier.onTimeRate * 0.3
+        }
+    }
+}
+
+
+function selectBestCarrier(carriers: Carrier[], shipment: Shipment[], product: Product[]): { carrier: Carrier, score: number, cost: number } | null {
+    const carrierScores = scoreCarrierForShipment(carriers, shipment, product);
+    let bestCarrier: { carrier: Carrier, score: number, cost: number } | null = null;
+
+    for (const carrierScore of carrierScores) {
+        if (carrierScore.addPoints < 200) {
+            let calculateCost = calculateShippingCost(shipment, product, carriers.filter(c => c.id === carrierScore.carrierName));
+        
+          console.log(calculateCost)
+        }
+    }
+    return bestCarrier;
+}
+
+
+function countProductsByCategory(products: Product[]) {
+    // let count = 0 
+    // let categoryCheck = ""
+    const categoryCount = [{ category: "", count: 0 }]
+    for (let cnt = 0; cnt < products.length; cnt++) {
+        if (products[cnt].category) {
+            const existingCategory = categoryCount.find(c => c.category === products[cnt].category);
+            if (existingCategory) {
+                existingCategory.count += 1;
+            } else {
+                categoryCount.push({ category: products[cnt].category, count: 1 });
+            }
+            // categoryCheck = products[cnt].category
+        }
+    }
+    return categoryCount
+}
+
+function calculateTotalInventoryValue(products: Product[]): number {
+    let totalValue = 0;
+    for (let i = 0; i < products.length; i++) {
+        totalValue += products[i].stockQuantity * products[i].unitCostUSD;
+    }
+    return `Total Inventory value is ${totalValue.toFixed(2)}` as unknown as number;
+}
+
+function calculateAverageShipmentDistance(shipments: Shipment[]): number {
+    let totalDistance = 0;
+    for (let i = 0; i < shipments.length; i++) {
+        totalDistance += shipments[i].destination.distanceKm;
+    }
+    return `Average shipment distance is ${shipments.length > 0 ? totalDistance / shipments.length : 0}` as unknown as number;
+}
+
+function groupShipmentsByStatus(shipments: Shipment[]): Record<string, Shipment[]> {
+    const groupedShipments: Record<string, Shipment[]> = {};
+
+    for (const shipment of shipments) {
+        console.log(shipment.status)
+        if (!groupedShipments[shipment.status]) {
+            groupedShipments[shipment.status] = [];
+            console.log(groupedShipments[shipment.status])
+        }
+        groupedShipments[shipment.status].push(shipment);
+    }
+
+    return groupedShipments;
+}
+
+function findTopCarriers(shipments: Shipment[], topN: number): Array<{ carrier: string, count: number }> {
+    const carrierCount: Array<{ carrier: string, count: number }> = []
+    // const carrierCounts: Array<{carrier: string, count: number}> = []
+    for (let i = 0; i < shipments.length; i++) {
+        if (shipments[i].carrier) {
+            const existingCarrier = carrierCount.find(c => c.carrier === shipments[i].carrier)
+            if (existingCarrier) {
+                existingCarrier.count += 1
+            } else {
+                carrierCount.push({ carrier: shipments[i].carrier, count: 1 })
+            }
+        }
+    }
+    return carrierCount.sort((a, b) => b.count - a.count).slice(0, topN);
 }
 
 
 
 // console.log(calculateShippingCost(sampleShipment, sampleProducts, sampleCarriers))
-console.log(scoreCarrierForShipment(sampleCarriers, sampleShipment, sampleProducts))
+// console.log(scoreCarrierForShipment(sampleCarriers, sampleShipment, sampleProducts))
+console.log(selectBestCarrier(sampleCarriers, sampleShipment, sampleProducts))
+// console.log(countProductsByCategory(sampleProducts))
+// console.log(calculateTotalInventoryValue(sampleProducts))
+// console.log(calculateAverageShipmentDistance(sampleShipment))
+// console.log(groupShipmentsByStatus(sampleShipment))
+// console.log(findTopCarriers(sampleShipment, 3))
+
+
+
+
+
