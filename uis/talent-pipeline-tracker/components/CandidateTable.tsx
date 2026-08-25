@@ -42,7 +42,7 @@ const CandidateTable = ({ candidates, returnTo }: CandidateTableProps) => {
               <td>
                 <Link
                   className="text-link"
-                  href={`/candidates/${candidate.id}?returnTo=${encodeURIComponent(returnTo)}`}
+                  href={`/candidate/${candidate.id}?returnTo=${encodeURIComponent(returnTo)}`}
                 >
                   View detail →
                 </Link>

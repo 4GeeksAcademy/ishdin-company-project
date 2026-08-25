@@ -13,9 +13,11 @@ export interface CandidateApiRecord {
   linkedin_url?: string | null;
   cv_link?: string | null;
   cv_url?: string | null;
+  experience_years?: number | string | null;
   years_of_experience?: number | string | null;
   status?: string;
   stage?: string;
+  applied_at?: string;
   application_date?: string;
   created_at?: string;
 }
@@ -64,12 +66,16 @@ export interface CandidateFormValues {
 }
 
 export interface CandidateWritePayload {
+  full_name: string;
+  experience_years: number | null;
   name: string;
   email: string;
   phone: string;
   position: string;
   linkedin: string;
+  linkedin_url: string;
   cv_link: string;
+  cv_url: string;
   years_of_experience: number | null;
   status: string;
   stage: string;

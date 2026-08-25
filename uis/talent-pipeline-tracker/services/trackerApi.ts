@@ -36,8 +36,15 @@ const parseErrorMessage = (payload: unknown, fallback: string) => {
   if (Array.isArray(data.detail)) {
     return data.detail
       .map((item) => {
-        if (item && typeof item === "object" && "msg" in item) {
-          return String((item as { msg: unknown }).msg);
+        if (item && typeof item === "object") {
+          const errorItem = item as { msg?: unknown; loc?: unknown };
+          const message = String(errorItem.msg ?? "Validation error");
+          if (!Array.isArray(errorItem.loc)) return message;
+          const path = errorItem.loc
+            .slice(1)
+            .map((part) => String(part))
+            .join(".");
+          return path ? `${path}: ${message}` : message;
         }
         return String(item);
       })
@@ -79,7 +86,7 @@ const normalizeCandidate = (raw: CandidateApiRecord): Candidate => {
     .filter(Boolean)
     .join(" ");
 
-  const yearsValue = raw.years_of_experience;
+  const yearsValue = raw.experience_years ?? raw.years_of_experience;
   const parsedYears =
     yearsValue === null || yearsValue === undefined || yearsValue === ""
       ? null
@@ -96,7 +103,7 @@ const normalizeCandidate = (raw: CandidateApiRecord): Candidate => {
     yearsOfExperience: Number.isNaN(parsedYears) ? null : parsedYears,
     status: raw.status ?? "",
     stage: raw.stage ?? "",
-    applicationDate: raw.application_date ?? raw.created_at ?? "",
+    applicationDate: raw.application_date ?? raw.applied_at ?? raw.created_at ?? "",
   };
 };
 
@@ -126,12 +133,18 @@ const normalizeNote = (raw: NoteApiRecord): CandidateNote => ({
 const toWritePayload = (
   values: CandidateFormValues,
 ): CandidateWritePayload => ({
+  full_name: values.name.trim(),
+  experience_years: values.yearsOfExperience
+    ? Number(values.yearsOfExperience)
+    : null,
   name: values.name.trim(),
   email: values.email.trim(),
   phone: values.phone.trim(),
   position: values.position.trim(),
   linkedin: values.linkedinUrl.trim(),
+  linkedin_url: values.linkedinUrl.trim(),
   cv_link: values.cvUrl.trim(),
+  cv_url: values.cvUrl.trim(),
   years_of_experience: values.yearsOfExperience
     ? Number(values.yearsOfExperience)
     : null,
