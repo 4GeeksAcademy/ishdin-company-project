@@ -57,6 +57,7 @@ const CandidateDetailView = () => {
 
   const stageOptions = useMemo(
     () => uniqueValues([
+      "offer_presented",
       candidate?.stage ?? "",
       ...pipeline.candidates.map((item) => item.stage),
     ]),

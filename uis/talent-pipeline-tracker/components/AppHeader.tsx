@@ -7,11 +7,11 @@ const AppHeader = () => {
         <Link href="/" className="brand">
           <span className="brand-mark">P&amp;T</span>
           <span>
-            <strong>Talent Pipeline Tracker</strong>
+            <strong>TrackFlow Talent Pipeline Tracker</strong>
             <small>People &amp; Talent recruitment workspace</small>
           </span>
         </Link>
-        <span className="campaign-pill">Active recruitment campaign</span>
+        <span className="campaign-pill">TrackFlow Active recruitment campaign</span>
       </div>
     </header>
   );

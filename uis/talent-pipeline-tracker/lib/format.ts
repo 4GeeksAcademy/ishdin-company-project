@@ -16,6 +16,9 @@ export const formatLabel = (value: string) =>
     .replace(/[_-]+/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+export const formatStageLabel = (value: string) =>
+  value === "offer_presented" ? "Offer presented" : formatLabel(value);
+
 export const uniqueValues = (values: string[]) =>
   Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
     a.localeCompare(b),

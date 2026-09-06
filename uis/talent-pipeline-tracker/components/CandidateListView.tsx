@@ -93,7 +93,7 @@ const CandidateListView = () => {
 
   const currentRoute = `${pathname}${params.toString() ? `?${params}` : ""}`;
   const statuses = uniqueValues(["selected", ...candidates.map((candidate) => candidate.status)]);
-  const stages = uniqueValues(candidates.map((candidate) => candidate.stage));
+  const stages = uniqueValues(["offer_presented", ...candidates.map((candidate) => candidate.stage)]);
 
   return (
     <main className="shell page">

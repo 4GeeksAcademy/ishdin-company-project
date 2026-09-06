@@ -1,5 +1,5 @@
 import type { Candidate } from "@/types/candidate";
-import { formatLabel } from "@/lib/format";
+import { formatLabel, formatStageLabel } from "@/lib/format";
 
 interface PipelineControlsProps {
   candidate: Candidate;
@@ -50,7 +50,7 @@ const PipelineControls = ({
             onChange={(event) => onChange("stage", event.target.value)}
           >
             {stageOptions.map((value) => (
-              <option key={value} value={value}>{formatLabel(value)}</option>
+              <option key={value} value={value}>{formatStageLabel(value)}</option>
             ))}
           </select>
           {busyField === "stage" && <small>Updating stage...</small>}

@@ -1,3 +1,5 @@
+import { formatStageLabel } from "@/lib/format";
+
 interface CandidateFiltersProps {
   search: string;
   status: string;
@@ -46,7 +48,7 @@ const CandidateFilters = ({
         <select value={stage} onChange={(event) => onStageChange(event.target.value)}>
           <option value="">All stages</option>
           {stageOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
+            <option key={option} value={option}>{formatStageLabel(option)}</option>
           ))}
         </select>
       </label>
