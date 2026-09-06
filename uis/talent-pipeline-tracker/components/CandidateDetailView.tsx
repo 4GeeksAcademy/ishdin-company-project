@@ -48,6 +48,7 @@ const CandidateDetailView = () => {
 
   const statusOptions = useMemo(
     () => uniqueValues([
+      "selected",
       candidate?.status ?? "",
       ...pipeline.candidates.map((item) => item.status),
     ]),
