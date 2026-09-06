@@ -50,6 +50,9 @@ export interface CandidateListApiResponse {
   records?: CandidateApiRecord[];
   items?: CandidateApiRecord[];
   data?: CandidateApiRecord[];
+  total?: number;
+  page?: number;
+  limit?: number;
 }
 
 export interface CandidateFormValues {

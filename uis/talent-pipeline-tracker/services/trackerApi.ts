@@ -17,6 +17,8 @@ const API_BASE =
   process.env.NEXT_PUBLIC_TRACKER_API_BASE_URL ??
   "https://playground.4geeks.com/tracker/api/v1";
 
+const CANDIDATES_PER_PAGE = 100;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -154,10 +156,34 @@ const toWritePayload = (
 });
 
 export const getCandidates = async () => {
-  const payload = await requestJson<
+  const firstPayload = await requestJson<
     CandidateApiRecord[] | CandidateListApiResponse
-  >("/records");
-  return extractRecordArray(payload).map(normalizeCandidate);
+  >(`/records?limit=${CANDIDATES_PER_PAGE}`);
+
+  if (Array.isArray(firstPayload)) {
+    return firstPayload.map(normalizeCandidate);
+  }
+
+  const firstPage = extractRecordArray(firstPayload);
+  const pageSize = firstPayload.limit ?? CANDIDATES_PER_PAGE;
+  const pageCount = Math.ceil((firstPayload.total ?? firstPage.length) / pageSize);
+
+  if (pageCount <= 1) {
+    return firstPage.map(normalizeCandidate);
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_, index) =>
+      requestJson<CandidateApiRecord[] | CandidateListApiResponse>(
+        `/records?page=${index + 2}&limit=${pageSize}`,
+      ),
+    ),
+  );
+
+  return [
+    ...firstPage,
+    ...remainingPages.flatMap(extractRecordArray),
+  ].map(normalizeCandidate);
 };
 
 export const getCandidate = async (id: CandidateId) => {
