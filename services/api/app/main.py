@@ -15,12 +15,15 @@ app = FastAPI(
 
 # Local-development frontend origins.
 # The frontend runs on port 3000 and FastAPI runs on port 8000.
+# allow_origin_regex also covers GitHub Codespaces forwarded-port URLs,
+# e.g. https://<codespace-name>-3000.app.github.dev
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ],
+    allow_origin_regex=r"https://.*\.app\.github\.dev",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
