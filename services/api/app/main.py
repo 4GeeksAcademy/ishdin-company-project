@@ -1,39 +1,53 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.incidents import router as incidents_router
+from routes.suppliers import router as suppliers_router
+from seed import seed_suppliers
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Guarantee that TrackFlow starts with the CONTEXT supplier directory.
+
+    The seeder is idempotent, so restarting the API does not create duplicate
+    suppliers.
+    """
+    inserted_count = seed_suppliers()
+
+    print(
+        "Supplier startup seed complete. "
+        f"Inserted {inserted_count} new record(s)."
+    )
+
+    yield
 
 
 app = FastAPI(
-    title="TrackFlow Incident Analysis API",
+    title="TrackFlow Supplier Management API",
     version="1.0.0",
     description=(
-        "Internal API for validating and analyzing TrackFlow after-sales "
-        "incident CSV files."
+        "Internal supplier directory API using FastAPI, TinyDB, and Pydantic."
     ),
+    lifespan=lifespan,
 )
 
-# Local-development frontend origins.
-# The frontend runs on port 3000 and FastAPI runs on port 8000.
-# allow_origin_regex also covers GitHub Codespaces forwarded-port URLs,
-# e.g. https://<codespace-name>-3000.app.github.dev
+# Local development + GitHub Codespaces frontend access.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ],
-    allow_origin_regex=r"https://.*\.app\.github\.dev",
+    allow_origin_regex=r"https://.*-3000\.app\.github\.dev",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(
-    incidents_router,
-    prefix="/api/incidents",
-    tags=["Incidents"],
-)
+app.include_router(suppliers_router)
 
 
 @app.get("/health", tags=["System"])
