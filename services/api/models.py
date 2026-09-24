@@ -90,3 +90,9 @@ class SupplierStatusUpdate(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
     status: SupplierStatus
+
+class DeleteSupplierResponse(BaseModel):
+    """Response returned after deleting a supplier."""
+
+    message: str
+    id: int = Field(..., gt=0)
