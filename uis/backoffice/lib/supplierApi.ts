@@ -6,8 +6,7 @@ import type {
 } from "@/types/supplier";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
-
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
 class SupplierApiError extends Error {
   status: number;
 
