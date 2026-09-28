@@ -1,6 +1,7 @@
 import type { IncidentAnalysisResult } from "@/types/incidents";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 export async function analyzeIncidentsCsv(file: File): Promise<IncidentAnalysisResult> {
