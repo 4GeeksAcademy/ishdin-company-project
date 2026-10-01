@@ -1,0 +1,6 @@
+fastapi<1.0,>=0.115
+libpass[bcrypt]>=1.9.3
+pydantic<3.0,>=2.7
+python-jose[cryptography]>=3.5.0
+tinydb<5.0,>=4.8
+uvicorn[standard]<1.0,>=0.30

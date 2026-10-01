@@ -13,6 +13,14 @@ HEADER = (
 )
 
 
+def test_auth_routes_are_listed_in_openapi() -> None:
+    paths = app.openapi()["paths"]
+
+    assert {"post", "get"} <= paths["/users"].keys()
+    assert {"get", "put"} <= paths["/profiles/me"].keys()
+    assert "post" in paths["/auth/login"]
+
+
 def setup_function() -> None:
     clear_latest_result()
 

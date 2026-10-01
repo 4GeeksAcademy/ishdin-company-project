@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: trackflow-supplier-api
+Version: 0.1.0
+Summary: TrackFlow supplier management API
+Requires-Python: >=3.11
+Requires-Dist: fastapi<1.0,>=0.115
+Requires-Dist: libpass[bcrypt]>=1.9.3
+Requires-Dist: pydantic<3.0,>=2.7
+Requires-Dist: python-jose[cryptography]>=3.5.0
+Requires-Dist: tinydb<5.0,>=4.8
+Requires-Dist: uvicorn[standard]<1.0,>=0.30
