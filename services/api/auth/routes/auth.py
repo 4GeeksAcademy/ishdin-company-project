@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from auth.dependencies import get_current_user
 from auth.models import (
     AuthMeResponse,
-    LoginRequest,
     ProfileResponse,
     TokenResponse,
     UserStored,
@@ -20,8 +20,10 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     response_model=TokenResponse,
     summary="Login and receive a JWT access token",
 )
-def login(payload: LoginRequest) -> TokenResponse:
-    token = login_user(str(payload.email), payload.password)
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+) -> TokenResponse:
+    token = login_user(form_data.username, form_data.password)
 
     if token is None:
         raise HTTPException(
