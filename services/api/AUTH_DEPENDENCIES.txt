@@ -1,0 +1,15 @@
+Merge these packages into the existing services/api/pyproject.toml dependencies:
+
+"python-jose[cryptography]",
+"libpass[bcrypt]",
+"python-dotenv",
+"email-validator",
+
+Important:
+- Use libpass[bcrypt], NOT the unmaintained passlib package.
+- The Python import intentionally remains:
+      from passlib.hash import bcrypt
+  because libpass is a maintained drop-in fork.
+
+Then run:
+    uv sync
