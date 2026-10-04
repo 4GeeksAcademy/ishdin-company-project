@@ -9,8 +9,9 @@ const navItems = [
   { href: "/suppliers", label: "Suppliers" }
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ trackerUrl }: { trackerUrl: string }) {
   const pathname = usePathname();
+  const items = [...navItems, { href: trackerUrl, label: "Talent Pipeline Tracker" }];
   return (
     <aside className="w-full bg-slate-950 text-white md:min-h-screen md:w-64">
       <div className="px-6 py-6">
@@ -18,7 +19,7 @@ export default function Sidebar() {
         <h1 className="mt-2 text-xl font-bold">Backoffice</h1>
       </div>
       <nav className="flex gap-2 overflow-x-auto px-4 pb-4 md:block md:space-y-2">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const active = pathname === item.href;
           return (
             <Link key={item.href} href={item.href}

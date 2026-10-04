@@ -55,3 +55,32 @@ npm run dev
 Open `http://localhost:3000/incident-analysis`.
 
 When the frontend calls FastAPI on port 8000 directly, FastAPI must allow `http://localhost:3000` through CORS. We can add that in the backend phase.
+
+## Talent Pipeline Tracker navigation
+
+The sidebar's **Talent Pipeline Tracker** link opens the standalone tracker's
+candidate-list landing page in the same tab. It defaults to `http://localhost:3001/`.
+
+To run both apps locally, use separate terminals from the repository root:
+
+```bash
+npm --prefix uis/backoffice run dev -- --port 3000
+npm --prefix uis/talent-pipeline-tracker run dev -- --port 3001
+```
+
+Run `npm install` in each app directory first if dependencies are not installed.
+
+For deployment or Codespaces, set the browser-accessible tracker landing URL in
+the Backoffice's `.env.local` or hosting environment:
+
+```bash
+NEXT_PUBLIC_TALENT_PIPELINE_TRACKER_URL=https://your-tracker-host.example/
+```
+
+In Codespaces, the default is automatically resolved to the forwarded HTTPS URL
+for port 3001 using `CODESPACE_NAME` and `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN`.
+Make sure port 3001 is forwarded in VS Code's Ports panel and the tracker is running.
+An explicit `NEXT_PUBLIC_TALENT_PIPELINE_TRACKER_URL` takes precedence over this default.
+Restart the Backoffice dev server after changing this variable. For production,
+set it before `npm run build` and rebuild when changing the destination, because
+Next.js embeds public environment variables at build time.
