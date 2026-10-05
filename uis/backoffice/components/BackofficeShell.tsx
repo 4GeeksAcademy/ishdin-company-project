@@ -27,7 +27,6 @@ export default function BackofficeShell({
               <Link href="/">Home</Link>
               <Link href="/incident-analysis">Incident analysis</Link>
               <Link href="/suppliers">Suppliers</Link>
-              <a href={trackerUrl}>Hiring tracker</a>
             </nav>
             <Link
               href={pathname === "/login" ? "/register" : "/login"}
