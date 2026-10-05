@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from auth.dependencies import get_current_user
+from auth.models import UserStored
 from database import suppliers_table
 from models import (
     DeleteSupplierResponse,
@@ -45,7 +47,10 @@ def _get_supplier_or_404(supplier_id: int):
     status_code=status.HTTP_201_CREATED,
     summary="Register a supplier",
 )
-def create_supplier(payload: SupplierCreate) -> SupplierResponse:
+def create_supplier(
+    payload: SupplierCreate,
+    current_user: UserStored = Depends(get_current_user),
+) -> SupplierResponse:
     """
     Register a supplier.
 
@@ -82,6 +87,7 @@ def list_suppliers(
         default=None,
         description="Filter by product category.",
     ),
+    current_user: UserStored = Depends(get_current_user),
 ) -> list[SupplierResponse]:
     """
     Return all suppliers when no filters are provided.
@@ -118,7 +124,10 @@ def list_suppliers(
     response_model=SupplierResponse,
     summary="Get supplier detail",
 )
-def get_supplier(supplier_id: int) -> SupplierResponse:
+def get_supplier(
+    supplier_id: int,
+    current_user: UserStored = Depends(get_current_user),
+) -> SupplierResponse:
     document = _get_supplier_or_404(supplier_id)
     return _document_to_response(document)
 
@@ -131,6 +140,7 @@ def get_supplier(supplier_id: int) -> SupplierResponse:
 def update_supplier_rate(
     supplier_id: int,
     payload: SupplierRateUpdate,
+    current_user: UserStored = Depends(get_current_user),
 ) -> SupplierResponse:
     """
     Update only the supplier rate.
@@ -159,6 +169,7 @@ def update_supplier_rate(
 def update_supplier_status(
     supplier_id: int,
     payload: SupplierStatusUpdate,
+    current_user: UserStored = Depends(get_current_user),
 ) -> SupplierResponse:
     """
     Change status between the only two valid values: active and suspended.
@@ -182,7 +193,10 @@ def update_supplier_status(
     response_model=DeleteSupplierResponse,
     summary="Delete supplier",
 )
-def delete_supplier(supplier_id: int) -> DeleteSupplierResponse:
+def delete_supplier(
+    supplier_id: int,
+    current_user: UserStored = Depends(get_current_user),
+) -> DeleteSupplierResponse:
     _get_supplier_or_404(supplier_id)
 
     suppliers_table.remove(doc_ids=[supplier_id])

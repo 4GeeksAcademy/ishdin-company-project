@@ -7,7 +7,7 @@ Phase 2 backend for the TrackFlow incident-file analysis project.
 - Python
 - FastAPI
 - Uvicorn
-- No database
+- TinyDB for supplier and user records
 - Latest analysis is stored in process memory
 
 ## Folder
@@ -19,6 +19,43 @@ This backend belongs under:
 ```
 
 ## Endpoints
+
+### Authentication and ownership
+
+`POST /auth/login` accepts OAuth2 form fields `username` (email) and `password`.
+Its response contains `access_token`, `token_type`, and `expires_in_minutes`.
+Send `Authorization: Bearer <access_token>` on every supplier and incident request;
+one successful login supplies the token for all these operations.
+
+Protected operations:
+
+- `POST /suppliers`
+- `GET /suppliers`
+- `GET /suppliers/{id}`
+- `PATCH /suppliers/{id}/rate`
+- `PATCH /suppliers/{id}/status`
+- `DELETE /suppliers/{id}`
+- `POST /api/incidents/analyze`
+- `GET /api/incidents/results/export`
+
+Missing, invalid, or expired credentials, including tokens for inactive/deleted
+users, return `401` with `WWW-Authenticate: Bearer`.
+Authenticated export of another user's incident analysis returns `403`, even for admins.
+Health, login, and user registration remain public.
+
+Suppliers are a shared directory. Every authenticated user can create, list,
+read, update rates/status, and delete any supplier, including existing and
+startup-seeded records. No `owner_id` is required or checked, and new records do
+not store one. Any existing owner metadata is ignored and is not included in
+responses. Country and category filters apply to the entire directory.
+Authenticated access to a missing supplier ID returns `404`.
+
+There is one latest successful analysis per API process, not one per user.
+Only its creator may export it. Another user's successful analysis replaces both
+the result and its owner, so the previous creator then receives `403` on export.
+Failed or unauthenticated analyses do not replace the cache. No analysis returns
+`404` to an authenticated caller; cache contents are lost on process restart and
+are not shared between workers.
 
 ### `POST /api/incidents/analyze`
 
@@ -38,6 +75,7 @@ formData.append("file", file);
 
 await fetch("http://localhost:8000/api/incidents/analyze", {
   method: "POST",
+  headers: { Authorization: `Bearer ${accessToken}` },
   body: formData,
 });
 ```

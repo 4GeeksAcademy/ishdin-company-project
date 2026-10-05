@@ -1,9 +1,11 @@
 from io import TextIOWrapper
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 
+from auth.dependencies import get_current_user
+from auth.models import UserStored
 from app.models.incidents import IncidentAnalysisResult
 from app.services.incident_analyzer import (
     IncidentFileError,
@@ -27,6 +29,7 @@ router = APIRouter()
 )
 def analyze_incidents(
     file: UploadFile = File(...),
+    current_user: UserStored = Depends(get_current_user),
 ) -> IncidentAnalysisResult:
     """
     Accept a CSV as multipart/form-data, run the TrackFlow validation/analysis,
@@ -96,7 +99,7 @@ def analyze_incidents(
         except ValueError:
             pass
 
-    save_latest_result(result)
+    save_latest_result(result, current_user.id)
     return result
 
 
@@ -104,16 +107,25 @@ def analyze_incidents(
     "/results/export",
     summary="Download the most recent incident analysis as CSV",
 )
-def export_latest_results() -> Response:
-    result = get_latest_result()
+def export_latest_results(
+    current_user: UserStored = Depends(get_current_user),
+) -> Response:
+    snapshot = get_latest_result()
 
-    if result is None:
+    if snapshot is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=(
                 "No analysis is available yet. "
                 "Upload and analyze a CSV file first."
             ),
+        )
+
+    owner_id, result = snapshot
+    if owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to export this analysis.",
         )
 
     csv_content = build_results_csv(result)
