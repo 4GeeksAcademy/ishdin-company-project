@@ -7,7 +7,7 @@ export interface LoginTokenResponse {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
 
-const SESSION_KEY = "trackflow.auth.session";
+export const AUTH_SESSION_KEY = "trackflow.auth.session";
 let redirectingToLogin = false;
 
 export class AuthSessionError extends Error {
@@ -32,7 +32,7 @@ export function setAuthSession(token: LoginTokenResponse): void {
   ) {
     throw new Error("Invalid login token response.");
   }
-  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+  window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
     accessToken: token.access_token,
     expiresAt,
   }));
@@ -42,14 +42,14 @@ export function setAuthSession(token: LoginTokenResponse): void {
 export function clearAuthSession(): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.removeItem(SESSION_KEY);
+    window.localStorage.removeItem(AUTH_SESSION_KEY);
   } catch {}
 }
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const stored = window.sessionStorage.getItem(SESSION_KEY);
+    const stored = window.localStorage.getItem(AUTH_SESSION_KEY);
     if (!stored) return null;
     const session = JSON.parse(stored);
     if (
@@ -68,6 +68,24 @@ function redirectToLogin(): void {
   redirectingToLogin = true;
   const next = window.location.pathname + window.location.search;
   window.location.replace(`/login?${new URLSearchParams({ next })}`);
+}
+
+export function getPostLoginPath(): string {
+  if (typeof window === "undefined") return "/";
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) {
+    return "/";
+  }
+  const destination = new URL(next, window.location.origin);
+  if (destination.origin !== window.location.origin || ["/login", "/register"].includes(destination.pathname)) {
+    return "/";
+  }
+  return `${destination.pathname}${destination.search}${destination.hash}`;
+}
+
+export function logout(): void {
+  clearAuthSession();
+  if (typeof window !== "undefined") window.location.replace("/login");
 }
 
 export async function authenticatedFetch(path: string, init?: RequestInit): Promise<Response> {

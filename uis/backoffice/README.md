@@ -34,51 +34,40 @@ Expected JSON shape:
 ### GET `/api/incidents/results/export`
 Returns the latest analysis as downloadable CSV.
 
-## Authentication integration
+## Authentication
 
-Supplier and incident helpers share the browser-only session utilities in
-`lib/auth.ts`. Login UI, dashboard route guards, and logout are intentionally
-handled separately, not implemented here.
+The Backoffice provides `/login`, `/register`, and `/account/profile` views. The
+public static Milestone 1 website and standalone Talent Pipeline Tracker are not
+part of the Backoffice authentication flow.
 
-After a successful `POST /auth/login`, the separate login implementation must
-pass the JSON token response to `setAuthSession`:
+`POST /auth/login` expects OAuth2 form fields `username` (the user's email) and
+`password`; it returns `access_token`, `token_type`, and `expires_in_minutes`.
+`/register` posts email, password, and optional name/phone/address to `POST /users`,
+then signs in using the same credentials. The backend requires an eight-character
+password and creates the profile during registration. Login and registration
+store the token and its expiry in `localStorage` through `lib/auth.ts`.
 
-```ts
-import { setAuthSession } from "@/lib/auth";
+The client-side route guard protects all Backoffice views except `/login` and
+`/register`. The login route returns to a validated local `next` path when present,
+otherwise `/`. Logout clears the token and redirects to `/login`. Every protected
+API helper sends `Authorization: Bearer <token>`; `401` clears the token and
+redirects to login, while `403` keeps the session active.
 
-const response = await fetch(`${apiBaseUrl}/auth/login`, {
-  method: "POST",
-  body: new URLSearchParams({ username: email, password }),
-});
-if (!response.ok) throw new Error("Login failed.");
-setAuthSession(await response.json());
-```
+`/account/profile` loads the user's email and profile through `GET /auth/me`, and
+saves name, phone, and address with `PUT /profiles/me`. Email is displayed but
+isn't editable from this view.
 
-The response must contain `access_token`, bearer `token_type`, and positive
-`expires_in_minutes`. The helper writes `trackflow.auth.session` to
-`sessionStorage` as `{ accessToken, expiresAt }`; use the helper rather than
-writing that record directly. It survives tab reloads, expires according to the
-login response, and clears when the browser tab session ends. Browser storage
-can be accessed by same-origin JavaScript; tokens must not be logged or put in URLs.
+Browser localStorage is readable by same-origin JavaScript. Tokens are not logged
+or placed in URLs. The session lasts according to `expires_in_minutes`; the backend
+has no refresh-token or password-reset flow.
 
 All six supplier helpers (`createSupplier`, `listSuppliers`, `getSupplier`,
 `updateSupplierRate`, `updateSupplierStatus`, `deleteSupplier`) and both incident
-helpers attach the same `Authorization: Bearer <token>` automatically. Multipart
-uploads keep the browser-generated boundary, and CSV export uses an authenticated
-fetch followed by the existing blob download.
-
-Missing/expired sessions stop the protected request and navigate to
-`/login?next=<encoded local path and query>`. API `401` clears the stored session
-and redirects once, without retrying the operation. API `403` preserves the
-session and surfaces access denied. The login route must be supplied separately
-and must validate `next` as a same-origin local path before navigating after login;
-until that route is provided, a redirect to it will reach a missing page.
-
-Suppliers are shared: any logged-in user can list, read, create, update, or delete
-records, including legacy/seeded records without `owner_id`. Country/category
-filters apply to all suppliers; no supplier ownership check is performed. Incident export
-belongs to the creator of the one globally latest successful analysis; another
-user's successful analysis replaces it and makes export forbidden for the prior owner.
+helpers attach the bearer token. Multipart uploads keep the browser-generated
+boundary; CSV export uses an authenticated fetch followed by the existing blob
+download. Suppliers are shared among authenticated users. Incident export belongs
+to the creator of the latest successful analysis; another user's successful
+analysis replaces it and makes export forbidden for the prior owner.
 
 Focused checks (Node.js 22.13+):
 
@@ -108,7 +97,8 @@ npm run dev
 ```
 Open `http://localhost:3000/incident-analysis`.
 
-When the frontend calls FastAPI on port 8000 directly, FastAPI must allow `http://localhost:3000` through CORS. We can add that in the backend phase.
+When the frontend calls FastAPI on port 8000 directly, FastAPI must allow
+`http://localhost:3000` through CORS.
 
 ## Talent Pipeline Tracker navigation
 

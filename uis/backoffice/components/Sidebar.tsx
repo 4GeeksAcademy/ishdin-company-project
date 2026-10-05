@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logout } from "@/lib/auth";
 
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/incident-analysis", label: "Incident Analysis" },
-  { href: "/suppliers", label: "Suppliers" }
+  { href: "/suppliers", label: "Suppliers" },
+  { href: "/account/profile", label: "Account profile" },
 ];
 
 export default function Sidebar({ trackerUrl }: { trackerUrl: string }) {
@@ -29,6 +31,15 @@ export default function Sidebar({ trackerUrl }: { trackerUrl: string }) {
           );
         })}
       </nav>
+      <div className="px-4 pb-5">
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+        >
+          Sign out
+        </button>
+      </div>
     </aside>
   );
 }
