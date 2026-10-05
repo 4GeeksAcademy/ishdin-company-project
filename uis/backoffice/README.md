@@ -34,6 +34,60 @@ Expected JSON shape:
 ### GET `/api/incidents/results/export`
 Returns the latest analysis as downloadable CSV.
 
+## Authentication integration
+
+Supplier and incident helpers share the browser-only session utilities in
+`lib/auth.ts`. Login UI, dashboard route guards, and logout are intentionally
+handled separately, not implemented here.
+
+After a successful `POST /auth/login`, the separate login implementation must
+pass the JSON token response to `setAuthSession`:
+
+```ts
+import { setAuthSession } from "@/lib/auth";
+
+const response = await fetch(`${apiBaseUrl}/auth/login`, {
+  method: "POST",
+  body: new URLSearchParams({ username: email, password }),
+});
+if (!response.ok) throw new Error("Login failed.");
+setAuthSession(await response.json());
+```
+
+The response must contain `access_token`, bearer `token_type`, and positive
+`expires_in_minutes`. The helper writes `trackflow.auth.session` to
+`sessionStorage` as `{ accessToken, expiresAt }`; use the helper rather than
+writing that record directly. It survives tab reloads, expires according to the
+login response, and clears when the browser tab session ends. Browser storage
+can be accessed by same-origin JavaScript; tokens must not be logged or put in URLs.
+
+All six supplier helpers (`createSupplier`, `listSuppliers`, `getSupplier`,
+`updateSupplierRate`, `updateSupplierStatus`, `deleteSupplier`) and both incident
+helpers attach the same `Authorization: Bearer <token>` automatically. Multipart
+uploads keep the browser-generated boundary, and CSV export uses an authenticated
+fetch followed by the existing blob download.
+
+Missing/expired sessions stop the protected request and navigate to
+`/login?next=<encoded local path and query>`. API `401` clears the stored session
+and redirects once, without retrying the operation. API `403` preserves the
+session and surfaces access denied. The login route must be supplied separately
+and must validate `next` as a same-origin local path before navigating after login;
+until that route is provided, a redirect to it will reach a missing page.
+
+Suppliers are shared: any logged-in user can list, read, create, update, or delete
+records, including legacy/seeded records without `owner_id`. Country/category
+filters apply to all suppliers; no supplier ownership check is performed. Incident export
+belongs to the creator of the one globally latest successful analysis; another
+user's successful analysis replaces it and makes export forbidden for the prior owner.
+
+Focused checks (Node.js 22.13+):
+
+```bash
+node --experimental-vm-modules --test tests/auth.test.cjs
+npx tsc --noEmit
+npm run build
+```
+
 ## What "host" means
 A host is the machine/domain that serves an application. In local development, the frontend is commonly `http://localhost:3000` and FastAPI is `http://localhost:8000`. Same computer, but different ports, so the browser treats them as different origins.
 

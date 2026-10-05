@@ -1,3 +1,4 @@
+import { authenticatedFetch } from "@/lib/auth";
 import type {
   Supplier,
   SupplierCreateInput,
@@ -5,8 +6,6 @@ import type {
   SupplierStatus,
 } from "@/types/supplier";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
 class SupplierApiError extends Error {
   status: number;
 
@@ -44,12 +43,11 @@ const request = async <T>(
   path: string,
   init?: RequestInit
 ): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const response = await authenticatedFetch(path, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -86,6 +84,12 @@ export const createSupplier = async (
     method: "POST",
     body: JSON.stringify(input),
   });
+
+export const getSupplier = async (id: number): Promise<Supplier> =>
+  request<Supplier>(`/suppliers/${id}`);
+
+export const deleteSupplier = async (id: number): Promise<{ message: string; id: number }> =>
+  request(`/suppliers/${id}`, { method: "DELETE" });
 
 export const updateSupplierRate = async (
   id: number,

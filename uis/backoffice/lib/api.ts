@@ -1,14 +1,11 @@
+import { authenticatedFetch } from "@/lib/auth";
 import type { IncidentAnalysisResult } from "@/types/incidents";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
-const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 export async function analyzeIncidentsCsv(file: File): Promise<IncidentAnalysisResult> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(apiUrl("/api/incidents/analyze"), {
+  const response = await authenticatedFetch("/api/incidents/analyze", {
     method: "POST",
     body: formData
   });
@@ -27,8 +24,15 @@ export async function analyzeIncidentsCsv(file: File): Promise<IncidentAnalysisR
 }
 
 export async function downloadLatestResults(): Promise<void> {
-  const response = await fetch(apiUrl("/api/incidents/results/export"));
-  if (!response.ok) throw new Error(`Export failed with HTTP ${response.status}.`);
+  const response = await authenticatedFetch("/api/incidents/results/export");
+  if (!response.ok) {
+    let message = `Export failed with HTTP ${response.status}.`;
+    try {
+      const body = await response.json();
+      if (typeof body?.detail === "string") message = body.detail;
+    } catch {}
+    throw new Error(message);
+  }
 
   const blob = await response.blob();
   const downloadUrl = URL.createObjectURL(blob);
