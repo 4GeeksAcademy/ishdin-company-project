@@ -66,6 +66,7 @@ def create_user(payload: UserCreate):
             "is_active": True,
             "role": UserRole.USER.value,
             "created_at": datetime.now(timezone.utc).isoformat(),
+            "token_version": 0,
         }
     )
 
@@ -113,6 +114,7 @@ def update_user(
 
     if payload.password is not None:
         changes["hashed_password"] = hash_password(payload.password)
+        changes["token_version"] = existing.token_version + 1
 
     if payload.role is not None:
         if not caller_is_admin:

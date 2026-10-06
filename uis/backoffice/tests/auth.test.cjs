@@ -290,3 +290,65 @@ test("account endpoints use bearer auth and preserve response data", async () =>
   assert.equal(state.calls[1].init.headers.get("Authorization"), "Bearer test-token");
   assert.deepEqual(JSON.parse(state.calls[1].init.body), { name: "Updated", phone: "123", address: "Main St" });
 });
+
+test("forgot and reset requests are public and send their secrets only in JSON bodies", async () => {
+  const state = await harness();
+  state.login();
+  state.responses.push(
+    new Response(JSON.stringify({ detail: "If that address is registered, you'll receive a link shortly." })),
+    new Response(JSON.stringify({ detail: "Password reset successfully." })),
+  );
+  const api = state.load("accountApi");
+  await api.requestPasswordReset("person@example.com");
+  await api.resetPassword("opaque.reset.token", "new-password");
+
+  assert.equal(state.calls[0].url, "http://api.example/auth/forgot-password");
+  assert.equal(state.calls[1].url, "http://api.example/auth/reset-password");
+  for (const call of state.calls) {
+    assert.equal(call.init.method, "POST");
+    assert.equal(call.init.headers.Authorization, undefined);
+    assert.equal(call.init.redirect, "error");
+  }
+  assert.deepEqual(JSON.parse(state.calls[0].init.body), { email: "person@example.com" });
+  assert.deepEqual(JSON.parse(state.calls[1].init.body), {
+    token: "opaque.reset.token", new_password: "new-password",
+  });
+  assert.ok(!state.calls[1].url.includes("opaque.reset.token"));
+});
+
+test("invalid or expired reset responses surface the backend error without sending the token in a URL", async () => {
+  const state = await harness();
+  state.responses.push(new Response(JSON.stringify({
+    detail: "The reset token is invalid, expired, or already used.",
+  }), { status: 400 }));
+  await assert.rejects(
+    state.load("accountApi").resetPassword("stale-token", "new-password"),
+    (error) => error.status === 400 && error.message.includes("expired"),
+  );
+  assert.equal(state.calls[0].url, "http://api.example/auth/reset-password");
+  assert.equal(state.calls[0].init.headers.Authorization, undefined);
+});
+
+test("change password uses bearer authorization and sends the documented fields", async () => {
+  const state = await harness();
+  state.login();
+  state.responses.push(new Response(JSON.stringify({ detail: "Password changed successfully." })));
+  await state.load("accountApi").changePassword("current-password", "new-password");
+  assert.equal(state.calls[0].url, "http://api.example/auth/change-password");
+  assert.equal(state.calls[0].init.headers.get("Authorization"), "Bearer test-token");
+  assert.deepEqual(JSON.parse(state.calls[0].init.body), {
+    current_password: "current-password", new_password: "new-password",
+  });
+});
+
+test("wrong current password keeps the current session available for retry", async () => {
+  const state = await harness();
+  state.login();
+  state.responses.push(new Response(JSON.stringify({ detail: "The current password is incorrect." }), { status: 400 }));
+  await assert.rejects(
+    state.load("accountApi").changePassword("wrong-password", "new-password"),
+    (error) => error.status === 400 && error.message.includes("current password"),
+  );
+  assert.equal(state.auth.getAccessToken(), "test-token");
+  assert.equal(state.redirects.length, 0);
+});

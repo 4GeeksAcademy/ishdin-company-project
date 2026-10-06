@@ -5,6 +5,7 @@ from tinydb import TinyDB
 from tinydb.storages import MemoryStorage
 
 import auth.services.profile_service as profile_service
+import auth.services.password_reset_service as password_reset_service
 import auth.services.user_service as user_service
 import routes.suppliers as supplier_routes
 from app.services.result_store import clear_latest_result
@@ -16,11 +17,15 @@ def isolated_storage(monkeypatch):
     database = TinyDB(storage=MemoryStorage)
     users = database.table("users")
     suppliers = database.table("suppliers")
+    reset_tokens = database.table("password_reset_tokens")
     monkeypatch.setattr(user_service, "users_table", users)
     monkeypatch.setattr(profile_service, "profiles_table", database.table("profiles"))
+    monkeypatch.setattr(password_reset_service, "password_reset_tokens_table", reset_tokens)
     monkeypatch.setattr(supplier_routes, "suppliers_table", suppliers)
     monkeypatch.setenv("JWT_SECRET_KEY", "test-only-secret-not-for-production")
     monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    monkeypatch.setenv("PASSWORD_RESET_SECRET_KEY", "test-only-reset-secret-with-sufficient-entropy")
+    monkeypatch.setenv("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "30")
     for user_id, role in [(1, "user"), (2, "user"), (3, "admin")]:
         users.insert({
             "id": user_id,

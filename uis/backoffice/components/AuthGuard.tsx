@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AccountApiError, getCurrentAccount } from "@/lib/accountApi";
 import { AUTH_SESSION_KEY, getAccessToken } from "@/lib/auth";
 
-const publicPaths = new Set(["/login", "/register"]);
+const publicPaths = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

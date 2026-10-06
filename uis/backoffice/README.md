@@ -36,7 +36,8 @@ Returns the latest analysis as downloadable CSV.
 
 ## Authentication
 
-The Backoffice provides `/login`, `/register`, and `/account/profile` views. The
+The Backoffice provides `/login`, `/register`, `/account/profile`,
+`/forgot-password`, `/reset-password`, and `/account/change-password` views. The
 public static Milestone 1 website and standalone Talent Pipeline Tracker are not
 part of the Backoffice authentication flow.
 
@@ -48,8 +49,9 @@ password and creates the profile during registration. Login and registration
 store the token and its expiry in `localStorage` through `lib/auth.ts`.
 
 The client-side route guard protects all Backoffice views except `/login` and
-`/register`. The login route returns to a validated local `next` path when present,
-otherwise `/`. Logout clears the token and redirects to `/login`. Every protected
+`/register`, `/forgot-password`, and `/reset-password`. The login route returns
+to a validated local `next` path when present, otherwise `/`. Logout clears the
+token and redirects to `/login`. Every protected
 API helper sends `Authorization: Bearer <token>`; `401` clears the token and
 redirects to login, while `403` keeps the session active.
 
@@ -57,9 +59,23 @@ redirects to login, while `403` keeps the session active.
 saves name, phone, and address with `PUT /profiles/me`. Email is displayed but
 isn't editable from this view.
 
+`/forgot-password` sends an email address to `POST /auth/forgot-password` and
+always shows the same confirmation, whether or not the address is registered.
+`/reset-password` reads the one-time token from the emailed link, immediately
+removes it from the address bar, and submits the token and confirmed new password
+in the request body. The route uses `no-referrer` and does not display or log the
+token. Invalid or expired links can be requested again from `/forgot-password`.
+
+`/account/change-password` posts the current and new passwords with the bearer
+token. It validates the new-password confirmation before sending. After a
+successful change, the backend revokes existing access tokens, so the frontend
+clears localStorage and asks the user to sign in again. A wrong current password
+is shown as a retryable error and does not clear the session.
+
 Browser localStorage is readable by same-origin JavaScript. Tokens are not logged
 or placed in URLs. The session lasts according to `expires_in_minutes`; the backend
-has no refresh-token or password-reset flow.
+has no refresh-token flow. Password reset delivery requires the backend's Resend
+configuration and verified sender domain.
 
 All six supplier helpers (`createSupplier`, `listSuppliers`, `getSupplier`,
 `updateSupplierRate`, `updateSupplierStatus`, `deleteSupplier`) and both incident

@@ -21,7 +21,7 @@ def login_user(email: str, password: str) -> TokenResponse | None:
     if user is None:
         return None
 
-    token, expire_minutes = create_access_token(user.id)
+    token, expire_minutes = create_access_token(user.id, user.token_version)
 
     return TokenResponse(
         access_token=token,
