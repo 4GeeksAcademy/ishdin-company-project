@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { clearAuthSession } from "@/lib/auth";
 import { AccountApiError, resetPassword } from "@/lib/accountApi";
@@ -15,11 +15,14 @@ export default function ResetPasswordForm() {
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const tokenInitialized = useRef(false);
 
   useEffect(() => {
+    if (tokenInitialized.current) return;
+    tokenInitialized.current = true;
     const resetToken = new URLSearchParams(window.location.search).get("token") ?? "";
     setToken(resetToken);
-    window.history.replaceState(null, "", "/reset-password");
+    window.history.replaceState(window.history.state, "", "/reset-password");
     setTokenReady(true);
   }, []);
 

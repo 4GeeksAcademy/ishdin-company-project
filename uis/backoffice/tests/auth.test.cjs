@@ -5,6 +5,61 @@ const test = require("node:test");
 const vm = require("node:vm");
 const { stripTypeScriptTypes } = require("node:module");
 
+test("reset token survives effect replay after removal from the URL", () => {
+  const babel = require("next/dist/compiled/babel/core");
+  const filename = path.join(__dirname, "..", "app", "reset-password", "ResetPasswordForm.tsx");
+  const { code } = babel.transformSync(fs.readFileSync(filename, "utf8"), {
+    filename,
+    babelrc: false,
+    configFile: false,
+    presets: [[require.resolve("next/babel"), {
+      "preset-env": { modules: "commonjs" },
+      "preset-react": { runtime: "automatic" },
+    }]],
+  });
+
+  for (const search of ["?token=opaque.reset.token", ""]) {
+    const effects = [];
+    const values = [];
+    const historyState = { nextRouter: true };
+    const window = {
+      location: { search },
+      history: {
+        state: historyState,
+        replaceState: (state, _title, url) => {
+          assert.equal(state, historyState);
+          assert.equal(url, "/reset-password");
+          window.location.search = "";
+        },
+      },
+    };
+    const exports = {};
+    vm.runInNewContext(code, {
+      exports, window, URLSearchParams,
+      require: (name) => {
+        if (name === "react") return {
+          useState: (initial) => {
+            const index = values.push(initial) - 1;
+            return [initial, (value) => { values[index] = value; }];
+          },
+          useRef: (initial) => ({ current: initial }),
+          useEffect: (effect) => effects.push(effect),
+        };
+        if (name === "next/navigation") return { useRouter: () => ({}) };
+        if (name === "react/jsx-runtime") return { jsx: () => null, jsxs: () => null };
+        if (name.startsWith("@babel/runtime/")) return require(name);
+        return {};
+      },
+    });
+    exports.default();
+    effects[0]();
+    effects[0]();
+    assert.equal(values[0], search ? "opaque.reset.token" : "");
+    assert.equal(values[1], true);
+    assert.equal(window.location.search, "");
+  }
+});
+
 async function harness(apiBase = "http://api.example", browser = true) {
   const storage = new Map();
   const calls = [];

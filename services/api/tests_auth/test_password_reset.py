@@ -256,6 +256,63 @@ def test_resend_email_is_mobile_readable_and_uses_configured_origin(monkeypatch)
     assert "https://backoffice.example.com/reset-password?token=signed.token-value" in sent[0]["text"]
 
 
+def test_resend_email_failure_logs_error_type_without_exception_details(monkeypatch, caplog):
+    import auth.services.email_service as email_service
+
+    monkeypatch.setenv("RESEND_API_KEY", "test-resend-key")
+    monkeypatch.setenv("RESEND_FROM_EMAIL", "TrackFlow <noreply@example.com>")
+    monkeypatch.setenv("BACKOFFICE_BASE_URL", "https://backoffice.example.com")
+
+    def fail_send(_message):
+        raise RuntimeError("sensitive provider response")
+
+    monkeypatch.setattr(email_service.resend.Emails, "send", fail_send)
+    email_service.send_password_reset_email("person@example.com", "signed.token-value")
+
+    assert "error_type=RuntimeError" in caplog.text
+    assert "sensitive provider response" not in caplog.text
+
+
+def test_resend_validation_error_logs_redacted_provider_reason(monkeypatch, caplog):
+    import resend
+    import auth.services.email_service as email_service
+
+    monkeypatch.setenv("RESEND_API_KEY", "test-resend-key")
+    monkeypatch.setenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+    monkeypatch.setenv("BACKOFFICE_BASE_URL", "https://backoffice.example.com")
+
+    def reject_send(_message):
+        raise resend.exceptions.ValidationError(
+            "Only test-account@example.com is allowed. "
+            "Reset link: https://backoffice.example.com/reset-password?token=secret",
+            "validation_error",
+            422,
+        )
+
+    monkeypatch.setattr(email_service.resend.Emails, "send", reject_send)
+    email_service.send_password_reset_email("test-account@example.com", "signed.token-value")
+
+    assert "provider_error_type=validation_error" in caplog.text
+    assert "status=422" in caplog.text
+    assert "Only [redacted email] is allowed" in caplog.text
+    assert "test-account@example.com" not in caplog.text
+    assert "secret" not in caplog.text
+
+
+def test_resend_email_rejects_invalid_sender_before_provider_call(monkeypatch, caplog):
+    import auth.services.email_service as email_service
+
+    monkeypatch.setenv("RESEND_API_KEY", "test-resend-key")
+    monkeypatch.setenv("RESEND_FROM_EMAIL", "TrackFlow <noreply>")
+    provider_calls = []
+    monkeypatch.setattr(email_service.resend.Emails, "send", lambda message: provider_calls.append(message))
+
+    email_service.send_password_reset_email("person@example.com", "signed.token-value")
+
+    assert provider_calls == []
+    assert "RESEND_FROM_EMAIL is invalid" in caplog.text
+
+
 def test_reset_expiry_is_limited_to_15_through_60_minutes(monkeypatch):
     from auth.security import get_password_reset_expire_minutes
 

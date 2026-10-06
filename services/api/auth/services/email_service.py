@@ -1,14 +1,20 @@
 import html
 import logging
 import os
+import re
+from email.utils import parseaddr
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
+from email_validator import EmailNotValidError, validate_email
 import resend
 
 from auth.security import get_password_reset_expire_minutes
 
 
 logger = logging.getLogger(__name__)
+
+_EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
+_URL_PATTERN = re.compile(r"https?://[^\s\"'<>]+")
 
 
 def _password_reset_link(token: str) -> str:
@@ -34,6 +40,13 @@ def send_password_reset_email(recipient: str, token: str) -> None:
     sender = os.getenv("RESEND_FROM_EMAIL", "").strip()
     if not api_key or not sender:
         logger.warning("Password reset email was not sent because Resend is not configured.")
+        return
+
+    _, sender_address = parseaddr(sender)
+    try:
+        validate_email(sender_address, check_deliverability=False)
+    except EmailNotValidError:
+        logger.warning("Password reset email was not sent because RESEND_FROM_EMAIL is invalid.")
         return
 
     try:
@@ -67,5 +80,19 @@ def send_password_reset_email(recipient: str, token: str) -> None:
                 f"{reset_link}\n\nIf you did not request this, ignore this email."
             ),
         })
-    except Exception:
-        logger.warning("Password reset email delivery failed.")
+    except Exception as exc:
+        if isinstance(exc, resend.exceptions.ResendError):
+            reason = _EMAIL_PATTERN.sub("[redacted email]", exc.message)
+            reason = _URL_PATTERN.sub("[redacted URL]", reason)[:300]
+            logger.warning(
+                "Password reset email rejected by Resend "
+                "(provider_error_type=%s, status=%s, reason=%s).",
+                exc.error_type,
+                exc.code,
+                reason,
+            )
+            return
+        logger.warning(
+            "Password reset email delivery failed (error_type=%s).",
+            type(exc).__name__,
+        )
