@@ -43,6 +43,43 @@ users, return `401` with `WWW-Authenticate: Bearer`.
 Authenticated export of another user's incident analysis returns `403`, even for admins.
 Health, login, and user registration remain public.
 
+### Password recovery and change
+
+`POST /auth/forgot-password` accepts `{"email":"person@example.com"}` and
+always returns the same HTTP 200 response whether the account exists or email
+delivery succeeds. Eligible active users receive a one-time link. `POST
+/auth/reset-password` accepts `{"token":"...","new_password":"..."}`; the
+signed token expires after the configured 15–60 minute lifetime and cannot be
+reused. Invalid, expired, and consumed tokens return HTTP 400.
+
+`POST /auth/change-password` requires `Authorization: Bearer <access_token>` and
+accepts `{"current_password":"...","new_password":"..."}`. An incorrect
+current password returns HTTP 400. Successful reset or change invalidates all
+previous access tokens; the user must sign in again. Self-service password
+changes through `PUT /users/{user_id}` are blocked; administrators retain their
+existing password-management capability, which also revokes that user's tokens.
+
+The backend sends reset emails with Resend using a responsive HTML email and a
+plain-text alternative. Set these variables in the API environment (never commit
+real credentials):
+
+- `RESEND_API_KEY`: Resend secret API key.
+- `RESEND_FROM_EMAIL`: sender address/name verified by Resend, for example
+  `TrackFlow <noreply@your-verified-domain.example>`.
+- `BACKOFFICE_BASE_URL`: trusted frontend origin used to create reset links; use
+  HTTPS in deployment. Local development may use `http://localhost:3000`.
+- `PASSWORD_RESET_SECRET_KEY`: separate random signing secret, at least 32 chars.
+- `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`: optional; defaults to 30 and must be
+  between 15 and 60.
+
+Reset tokens are signed and include a purpose, user ID, expiry, and random unique
+ID. The server persists only a SHA-256 hash of the unique ID. A 60-second
+per-account cooldown limits email flooding. Token issuance and consumption use
+TinyDB plus a process lock; this implementation requires a single API worker.
+Use shared transactional storage before deploying multiple workers/instances.
+Do not log reset links, tokens, recipients, API keys, or email contents. Configure
+the sender domain's SPF/DKIM records in Resend before production use.
+
 Suppliers are a shared directory. Every authenticated user can create, list,
 read, update rates/status, and delete any supplier, including existing and
 startup-seeded records. No `owner_id` is required or checked, and new records do

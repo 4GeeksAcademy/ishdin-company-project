@@ -12,9 +12,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("passwordReset") === "success") {
+      setNotice("Your password has been reset. Sign in with your new password.");
+    } else if (query.get("passwordChanged") === "success") {
+      setNotice("Your password has been changed. Sign in again to continue.");
+    }
     if (getAccessToken()) router.replace("/");
   }, [router]);
 
@@ -42,6 +49,8 @@ export default function LoginPage() {
         <p className="mt-1 text-sm leading-6 text-slate-600">Sign in to access operations, incident analysis, and supplier tools.</p>
       </section>
 
+      {notice && <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{notice}</p>}
+
       <form onSubmit={submit} className="grid gap-4 rounded-xl border border-[#d8d2c5] bg-[#fffefa] p-5 sm:p-6">
         <label className="grid gap-2 text-sm font-semibold text-slate-900" htmlFor="email">
           Email
@@ -51,6 +60,7 @@ export default function LoginPage() {
           Password
           <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="h-12 rounded-lg border border-[#d8d2c5] bg-white px-3 font-normal outline-none focus:border-[#3f7669] focus:ring-2 focus:ring-[#3f7669]/20" />
         </label>
+        <Link href="/forgot-password" className="justify-self-start text-sm font-medium text-[#315d54] underline underline-offset-4">Forgot your password?</Link>
         {error && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{error}</p>}
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <button type="submit" disabled={submitting} className="min-h-11 rounded-lg bg-[#3e7468] px-5 text-sm font-semibold text-white hover:bg-[#315d54] disabled:cursor-wait disabled:opacity-60">

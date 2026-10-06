@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
 from auth.models import UserStored
-from auth.security import decode_access_token
+from auth.security import decode_access_token_claims
 from auth.services.user_service import get_user_by_id
 
 
@@ -20,13 +20,13 @@ def get_current_user(
     )
 
     try:
-        user_id = decode_access_token(token)
+        user_id, token_version = decode_access_token_claims(token)
     except (JWTError, RuntimeError):
         raise credentials_exception
 
     user = get_user_by_id(user_id)
 
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or user.token_version != token_version:
         raise credentials_exception
 
     return user

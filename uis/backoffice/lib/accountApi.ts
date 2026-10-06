@@ -24,6 +24,10 @@ export interface CurrentAccount {
   profile: AccountProfile;
 }
 
+export interface ApiMessageResponse {
+  detail: string;
+}
+
 export type ProfileUpdate = Pick<AccountProfile, "name" | "phone" | "address">;
 
 export class AccountApiError extends Error {
@@ -104,4 +108,39 @@ export async function updateMyProfile(input: ProfileUpdate): Promise<AccountProf
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   }));
+}
+
+export async function requestPasswordReset(email: string): Promise<ApiMessageResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+    redirect: "error",
+  });
+  return parseResponse<ApiMessageResponse>(response);
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<ApiMessageResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+    redirect: "error",
+  });
+  return parseResponse<ApiMessageResponse>(response);
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<ApiMessageResponse> {
+  const response = await authenticatedFetch("/auth/change-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  });
+  return parseResponse<ApiMessageResponse>(response);
 }

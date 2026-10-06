@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth.dependencies import get_current_user
+from auth.services.password_reset_service import invalidate_password_reset_tokens
+from auth.services.password_lock import password_change_lock
 from auth.models import (
     UserCreate,
     UserRegistrationResponse,
@@ -109,23 +111,31 @@ def put_user(
     _require_self_or_admin(user_id, current_user)
 
     caller_is_admin = current_user.role == UserRole.ADMIN
-
-    try:
-        updated = update_user(
-            user_id,
-            payload,
-            caller_is_admin=caller_is_admin,
-        )
-    except PermissionError as exc:
+    if payload.password is not None and not caller_is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc),
-        ) from exc
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
-        ) from exc
+            detail="Use POST /auth/change-password to change your own password.",
+        )
+    with password_change_lock:
+        try:
+            updated = update_user(
+                user_id,
+                payload,
+                caller_is_admin=caller_is_admin,
+            )
+        except PermissionError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(exc),
+            ) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
+
+        if updated is not None and payload.password is not None:
+            invalidate_password_reset_tokens(user_id)
 
     if updated is None:
         raise HTTPException(

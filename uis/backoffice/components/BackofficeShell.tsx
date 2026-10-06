@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
 import Sidebar from "@/components/Sidebar";
 
-const authPaths = new Set(["/login", "/register"]);
+const authPaths = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
 export default function BackofficeShell({
   children,
@@ -27,6 +27,7 @@ export default function BackofficeShell({
               <Link href="/">Home</Link>
               <Link href="/incident-analysis">Incident analysis</Link>
               <Link href="/suppliers">Suppliers</Link>
+              <a href={trackerUrl}>Hiring tracker</a>
             </nav>
             <Link
               href={pathname === "/login" ? "/register" : "/login"}

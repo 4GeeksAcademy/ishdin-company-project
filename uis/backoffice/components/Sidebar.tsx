@@ -9,6 +9,7 @@ const navItems = [
   { href: "/incident-analysis", label: "Incident Analysis" },
   { href: "/suppliers", label: "Suppliers" },
   { href: "/account/profile", label: "Account profile" },
+  { href: "/account/change-password", label: "Change password" },
 ];
 
 export default function Sidebar({ trackerUrl }: { trackerUrl: string }) {
