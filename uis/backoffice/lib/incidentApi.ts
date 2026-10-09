@@ -6,10 +6,7 @@ import type {
   IncidentStatus,
   IncidentSummary,
 } from "@/types/incident";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??
-  "http://localhost:8000";
+import { AuthSessionError, authenticatedFetch } from "@/lib/auth";
 
 export class IncidentApiError extends Error {
   status: number;
@@ -27,16 +24,6 @@ export class IncidentApiError extends Error {
   }
 }
 
-const getAccessToken = () => {
-  if (typeof window === "undefined") return null;
-
-  // If your AUTH-01 frontend uses a different key, change it here only.
-  return (
-    window.localStorage.getItem("access_token") ??
-    window.localStorage.getItem("token")
-  );
-};
-
 const request = async <T>(
   path: string,
   init: RequestInit = {},
@@ -48,20 +35,19 @@ const request = async <T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const token = getAccessToken();
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
   let response: Response;
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await authenticatedFetch(path, {
       ...init,
       headers,
       cache: "no-store",
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof AuthSessionError) {
+      throw new IncidentApiError(error.message, error.status);
+    }
+
     throw new IncidentApiError(
       "We could not reach the incident service. Check your connection and try again.",
       0,

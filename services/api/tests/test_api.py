@@ -8,6 +8,8 @@ from app.main import app
 from app.services.result_store import clear_latest_result, get_latest_result, save_latest_result
 from auth.security import JWT_ALGORITHM, get_jwt_secret, hash_password
 from main import app as supplier_app
+from services.api.incidents import routes as incident_manager_routes
+from services.api.incidents.repository import IncidentRepository
 
 
 client = TestClient(app)
@@ -37,6 +39,68 @@ def test_auth_routes_are_listed_in_openapi() -> None:
     assert {"post", "get"} <= paths["/users"].keys()
     assert {"get", "put"} <= paths["/profiles/me"].keys()
     assert "post" in paths["/auth/login"]
+
+
+@pytest.mark.parametrize("application", [app, supplier_app])
+def test_incident_manager_routes_are_listed_in_openapi(application):
+    paths = application.openapi()["paths"]
+    expected_operations = [
+        ("/api/incidents", "post"),
+        ("/api/incidents", "get"),
+        ("/api/incidents/summary", "get"),
+        ("/api/incidents/{incident_id}", "get"),
+        ("/api/incidents/{incident_id}/status", "patch"),
+    ]
+
+    for path, method in expected_operations:
+        operation = paths[path][method]
+        assert operation["security"] == [{"OAuth2PasswordBearer": []}]
+
+
+def test_incident_manager_routes_support_authenticated_workflow(
+    monkeypatch,
+    tmp_path,
+):
+    repository = IncidentRepository(tmp_path / "incidents.json")
+    monkeypatch.setattr(
+        incident_manager_routes,
+        "incident_repository",
+        repository,
+    )
+    payload = {
+        "title": "Missing parcel",
+        "description": "The parcel was not delivered.",
+        "category": "lost_parcel",
+        "status": "open",
+        "origin": "customer",
+        "branch": "la_office",
+    }
+
+    try:
+        created = client.post("/api/incidents", json=payload)
+        assert created.status_code == 201
+        incident_id = created.json()["id"]
+
+        listed = client.get("/api/incidents")
+        assert listed.status_code == 200
+        assert [incident["id"] for incident in listed.json()] == [incident_id]
+
+        summary = client.get("/api/incidents/summary")
+        assert summary.status_code == 200
+        assert summary.json()["total"] == 1
+
+        fetched = client.get(f"/api/incidents/{incident_id}")
+        assert fetched.status_code == 200
+        assert fetched.json()["id"] == incident_id
+
+        updated = client.patch(
+            f"/api/incidents/{incident_id}/status",
+            json={"status": "in_progress"},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["status"] == "in_progress"
+    finally:
+        repository.close()
 
 
 def setup_function() -> None:

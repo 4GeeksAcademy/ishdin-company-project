@@ -9,4 +9,5 @@ Requires-Dist: libpass[bcrypt]>=1.9.3
 Requires-Dist: pydantic<3.0,>=2.7
 Requires-Dist: python-jose[cryptography]>=3.5.0
 Requires-Dist: tinydb<5.0,>=4.8
+Requires-Dist: resend<3.0,>=2.0
 Requires-Dist: uvicorn[standard]<1.0,>=0.30
