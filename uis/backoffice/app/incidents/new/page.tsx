@@ -9,7 +9,7 @@ export default function NewIncidentPage() {
           <p className="text-sm font-medium text-slate-500">
             TrackFlow backoffice
           </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-emerald-800">
             Register an incident
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">

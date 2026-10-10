@@ -255,7 +255,7 @@ export const IncidentListPanel = ({
               ? "No incidents match these filters."
               : "No incidents have been registered yet."}
           </p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {hasFilters
               ? "Change or clear a filter to see more results."
               : "Register an incident to start the central registry."}
@@ -264,7 +264,7 @@ export const IncidentListPanel = ({
             <button
               type="button"
               onClick={() => setFilters(emptyFilters)}
-              className="mt-4 min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold dark:border-slate-700"
+              className="mt-4 min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:text-white"
             >
               Clear filters
             </button>
@@ -302,13 +302,13 @@ export const IncidentListPanel = ({
                         {incident.description}
                       </p>
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-slate-700 dark:text-slate-100">
                       {categoryLabel(incident.category)}
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-slate-700 dark:text-slate-100">
                       {originLabel(incident.origin)}
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-slate-700 dark:text-slate-100">
                       {branchLabel(incident.branch)}
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap text-slate-600 dark:text-slate-300">
@@ -331,13 +331,17 @@ export const IncidentListPanel = ({
                                 void changeStatus(incident, next);
                               }
                             }}
-                            className="min-h-10 rounded-lg border border-slate-300 bg-white px-2 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900"
+                            className="min-h-10 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-900 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                           >
                             <option value="">
                               {updating ? "Updating…" : "Change status…"}
                             </option>
                             {nextStatuses.map((status) => (
-                              <option key={status} value={status}>
+                              <option
+                                key={status}
+                                value={status}
+                                className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                              >
                                 Move to {statusLabel(status)}
                               </option>
                             ))}

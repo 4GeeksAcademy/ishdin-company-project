@@ -116,7 +116,7 @@ export const IncidentRegistrationForm = ({ onCreated }: Props) => {
 
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label htmlFor="incident-title" className="text-sm font-medium">
+          <label htmlFor="incident-title" className="text-sm font-medium text-slate-900 dark:text-white">
             Title
           </label>
           <input
@@ -135,7 +135,7 @@ export const IncidentRegistrationForm = ({ onCreated }: Props) => {
         </div>
 
         <div>
-          <label htmlFor="incident-description" className="text-sm font-medium">
+          <label htmlFor="incident-description" className="text-sm font-medium text-slate-900 dark:text-white">
             Description
           </label>
           <textarea
@@ -156,7 +156,7 @@ export const IncidentRegistrationForm = ({ onCreated }: Props) => {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor="incident-category" className="text-sm font-medium">
+            <label htmlFor="incident-category" className="text-sm font-medium text-slate-900 dark:text-white">
               Category
             </label>
             <select
@@ -182,7 +182,7 @@ export const IncidentRegistrationForm = ({ onCreated }: Props) => {
           </div>
 
           <div>
-            <label htmlFor="incident-status" className="text-sm font-medium">
+            <label htmlFor="incident-status" className="text-sm font-medium text-slate-900 dark:text-white">
               Status
             </label>
             <select
@@ -206,7 +206,7 @@ export const IncidentRegistrationForm = ({ onCreated }: Props) => {
           </div>
 
           <div>
-            <label htmlFor="incident-origin" className="text-sm font-medium">
+            <label htmlFor="incident-origin" className="text-sm font-medium text-slate-900 dark:text-white">
               Origin
             </label>
             <select
@@ -236,7 +236,7 @@ export const IncidentRegistrationForm = ({ onCreated }: Props) => {
                 : ""
             }
           >
-            <label htmlFor="incident-branch" className="text-sm font-medium">
+            <label htmlFor="incident-branch" className="text-sm font-medium text-slate-900 dark:text-white">
               Branch
             </label>
             {form.origin === "branch" && (
