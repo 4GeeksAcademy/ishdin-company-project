@@ -1,0 +1,3 @@
+data/incidents.json
+__pycache__/
+.pytest_cache/

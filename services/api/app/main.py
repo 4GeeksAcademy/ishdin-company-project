@@ -7,6 +7,7 @@ from app.api.incidents import router as incidents_router
 from auth.routes.auth import router as auth_router
 from auth.routes.profiles import router as profiles_router
 from auth.routes.users import router as users_router
+from services.api.incidents.routes import router as incident_manager_router
 from routes.suppliers import router as suppliers_router
 from seed import seed_suppliers
 
@@ -53,6 +54,7 @@ app.add_middleware(
 
 app.include_router(suppliers_router)
 app.include_router(incidents_router, prefix="/api/incidents")
+app.include_router(incident_manager_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(profiles_router)

@@ -7,6 +7,7 @@ import { logout } from "@/lib/auth";
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/incident-analysis", label: "Incident Analysis" },
+  { href: "/incidents", label: "Incidents" },
   { href: "/suppliers", label: "Suppliers" },
   { href: "/account/profile", label: "Account profile" },
   { href: "/account/change-password", label: "Change password" },
