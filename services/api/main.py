@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,19 +13,32 @@ from routes.suppliers import router as suppliers_router
 from seed import seed_suppliers
 
 
+logger = logging.getLogger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Guarantee that TrackFlow starts with the CONTEXT supplier directory.
 
     The seeder is idempotent, so restarting the API does not create duplicate
-    suppliers.
+    suppliers. Startup is aborted with a controlled error when supplier data
+    cannot be initialized safely.
     """
-    inserted_count = seed_suppliers()
+    try:
+        inserted_count = seed_suppliers()
+    except (OSError, ValueError, RuntimeError) as exc:
+        logger.error(
+            "Supplier startup seed failed (error_type=%s).",
+            type(exc).__name__,
+        )
+        raise RuntimeError(
+            "TrackFlow could not initialize supplier data."
+        ) from None
 
-    print(
-        "Supplier startup seed complete. "
-        f"Inserted {inserted_count} new record(s)."
+    logger.info(
+        "Supplier startup seed complete. Inserted %s new record(s).",
+        inserted_count,
     )
 
     yield

@@ -44,7 +44,11 @@ VALID_STATUSES = {"OPEN", "CLOSED", "DISCARDED"}
 
 
 class IncidentFileError(ValueError):
-    """Raised when the uploaded CSV cannot be analyzed."""
+    """Raised when the uploaded CSV cannot be analyzed safely."""
+
+    def __init__(self, public_message: str):
+        self.public_message = public_message
+        super().__init__(public_message)
 
 
 def clean(value: object) -> str:
@@ -197,10 +201,10 @@ def analyze_csv_stream(stream: TextIO) -> IncidentAnalysisResult:
                 closed_score_total += score
                 closed_score_count += 1
 
-    except csv.Error as exc:
+    except csv.Error:
         raise IncidentFileError(
-            f"Incorrect CSV format: {exc}"
-        ) from exc
+            "Incorrect CSV format. Check quoting, delimiters, and row structure."
+        ) from None
 
     if total_records == 0:
         raise IncidentFileError(

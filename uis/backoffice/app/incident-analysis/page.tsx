@@ -4,7 +4,7 @@ import { useState } from "react";
 import BreakdownTable from "@/components/BreakdownTable";
 import FileUpload from "@/components/FileUpload";
 import MetricCard from "@/components/MetricCard";
-import { analyzeIncidentsCsv, downloadLatestResults } from "@/lib/api";
+import { AnalysisApiError, analyzeIncidentsCsv, downloadLatestResults } from "@/lib/api";
 import type { IncidentAnalysisResult, IncidentCategory, IncidentStatus } from "@/types/incidents";
 
 const categories: IncidentCategory[] = ["LOST_PARCEL", "DELAYED_DELIVERY", "WRONG_ADDRESS", "RETURN_REQUEST", "DAMAGE"];
@@ -22,14 +22,14 @@ export default function IncidentAnalysisPage() {
     if (!file) return setError("Please choose a CSV file before starting the analysis.");
     setLoading(true); setError(""); setResult(null);
     try { setResult(await analyzeIncidentsCsv(file)); }
-    catch (e) { setError(e instanceof Error ? e.message : "The CSV could not be analyzed."); }
+    catch (e) { setError(e instanceof AnalysisApiError ? e.message : "The CSV could not be analyzed. Please try again."); }
     finally { setLoading(false); }
   };
 
   const handleExport = async () => {
     setExporting(true); setError("");
     try { await downloadLatestResults(); }
-    catch (e) { setError(e instanceof Error ? e.message : "The latest analysis could not be exported."); }
+    catch (e) { setError(e instanceof AnalysisApiError ? e.message : "The latest analysis could not be exported. Please try again."); }
     finally { setExporting(false); }
   };
 

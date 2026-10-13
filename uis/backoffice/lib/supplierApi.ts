@@ -1,4 +1,4 @@
-import { authenticatedFetch } from "@/lib/auth";
+import { AuthSessionError, authenticatedFetch } from "@/lib/auth";
 import type {
   Supplier,
   SupplierCreateInput,
@@ -6,7 +6,7 @@ import type {
   SupplierStatus,
 } from "@/types/supplier";
 
-class SupplierApiError extends Error {
+export class SupplierApiError extends Error {
   status: number;
 
   constructor(message: string, status: number) {
@@ -16,27 +16,23 @@ class SupplierApiError extends Error {
   }
 }
 
-const getErrorMessage = async (response: Response): Promise<string> => {
-  try {
-    const body = await response.json();
-
-    if (typeof body?.detail === "string") {
-      return body.detail;
-    }
-
-    if (Array.isArray(body?.detail)) {
-      return body.detail
-        .map((item: { loc?: (string | number)[]; msg?: string }) => {
-          const field = item.loc?.at(-1);
-          return `${field ? `${field}: ` : ""}${item.msg ?? "Invalid value"}`;
-        })
-        .join(" | ");
-    }
-  } catch {
-    // Fall through to the generic message below.
+const getErrorMessage = (status: number): string => {
+  if (status === 400 || status === 422) {
+    return "Supplier details are invalid. Review the form and try again.";
   }
-
-  return `Request failed with HTTP ${response.status}.`;
+  if (status === 401) {
+    return "Your session has expired. Please sign in again.";
+  }
+  if (status === 403) {
+    return "You do not have permission to update supplier data.";
+  }
+  if (status === 404) {
+    return "The supplier could not be found. Refresh the directory and try again.";
+  }
+  if (status >= 500) {
+    return "The supplier service is temporarily unavailable. Please try again.";
+  }
+  return "The supplier request could not be completed. Please try again.";
 };
 
 const request = async <T>(
@@ -45,19 +41,42 @@ const request = async <T>(
 ): Promise<T> => {
   const headers = new Headers(init?.headers);
   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await authenticatedFetch(path, {
-    ...init,
-    headers,
-  });
+
+  let response: Response;
+  try {
+    response = await authenticatedFetch(path, {
+      ...init,
+      headers,
+    });
+  } catch (error) {
+    if (error instanceof AuthSessionError) {
+      throw new SupplierApiError(
+        "Your session has expired. Please sign in again.",
+        error.status,
+      );
+    }
+
+    throw new SupplierApiError(
+      "We could not reach the supplier service. Check your connection and try again.",
+      0,
+    );
+  }
 
   if (!response.ok) {
     throw new SupplierApiError(
-      await getErrorMessage(response),
+      getErrorMessage(response.status),
       response.status
     );
   }
 
-  return response.json() as Promise<T>;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new SupplierApiError(
+      "The supplier service returned an invalid response. Please try again.",
+      response.status,
+    );
+  }
 };
 
 export const listSuppliers = async (
@@ -111,4 +130,3 @@ export const updateSupplierStatus = async (
     body: JSON.stringify({ status }),
   });
 
-export { SupplierApiError };

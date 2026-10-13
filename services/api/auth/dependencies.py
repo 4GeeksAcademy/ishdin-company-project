@@ -21,7 +21,7 @@ def get_current_user(
 
     try:
         user_id, token_version = decode_access_token_claims(token)
-    except (JWTError, RuntimeError):
+    except JWTError:
         raise credentials_exception
 
     user = get_user_by_id(user_id)

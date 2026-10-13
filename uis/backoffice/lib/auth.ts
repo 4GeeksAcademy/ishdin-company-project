@@ -32,25 +32,43 @@ export function setAuthSession(token: LoginTokenResponse): void {
   ) {
     throw new Error("Invalid login token response.");
   }
-  window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
-    accessToken: token.access_token,
-    expiresAt,
-  }));
+  try {
+    window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+      accessToken: token.access_token,
+      expiresAt,
+    }));
+  } catch {
+    throw new Error("Your browser could not store the login session. Please try again.");
+  }
   redirectingToLogin = false;
 }
 
 export function clearAuthSession(): void {
   if (typeof window === "undefined") return;
+
   try {
     window.localStorage.removeItem(AUTH_SESSION_KEY);
-  } catch {}
+  } catch {
+    // Do not expose browser-storage exception details. The next protected
+    // request still validates the token with the backend before granting access.
+    console.warn("TrackFlow could not clear the stored authentication session.");
+  }
 }
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
+
+  let stored: string | null;
   try {
-    const stored = window.localStorage.getItem(AUTH_SESSION_KEY);
-    if (!stored) return null;
+    stored = window.localStorage.getItem(AUTH_SESSION_KEY);
+  } catch {
+    console.warn("TrackFlow could not read the stored authentication session.");
+    return null;
+  }
+
+  if (!stored) return null;
+
+  try {
     const session = JSON.parse(stored);
     if (
       typeof session?.accessToken === "string" && /^\S+$/.test(session.accessToken) &&
@@ -58,10 +76,14 @@ export function getAccessToken(): string | null {
     ) {
       return session.accessToken;
     }
-  } catch {}
+  } catch {
+    console.warn("TrackFlow found an invalid stored authentication session.");
+  }
+
   clearAuthSession();
   return null;
 }
+
 
 function redirectToLogin(): void {
   if (typeof window === "undefined" || redirectingToLogin || window.location.pathname === "/login") return;

@@ -20,6 +20,7 @@ from services.api.incidents.models import IncidentStored  # noqa: E402
 from services.api.incidents.seed_store import (  # noqa: E402
     DEFAULT_DB_PATH,
     IncidentSeedStore,
+    IncidentSeedStoreError,
 )
 
 
@@ -89,7 +90,7 @@ def verify_expected_transformed_counts(
     valid_count: int,
     status_counts: Counter,
     category_counts: Counter,
-) -> None:
+) -> bool:
     print("\nCONTEXT VERIFICATION")
     print("-" * 72)
 
@@ -127,7 +128,7 @@ def verify_expected_transformed_counts(
         else:
             all_passed = False
             print(
-                f"WARN  {label}: actual={actual}, expected={expected}"
+                f"FAIL  {label}: actual={actual}, expected={expected}"
             )
 
     if all_passed:
@@ -140,14 +141,16 @@ def verify_expected_transformed_counts(
             "TrackFlow CONTEXT."
         )
 
+    return all_passed
+
 
 def seed(csv_path: Path, db_path: Path) -> int:
     if not csv_path.exists():
-        print(f"Error: CSV file not found: {csv_path}")
+        print("Error: the input CSV file was not found.")
         return 1
 
     if not csv_path.is_file():
-        print(f"Error: CSV path is not a file: {csv_path}")
+        print("Error: the supplied CSV path is not a file.")
         return 1
 
     total_rows = 0
@@ -162,7 +165,11 @@ def seed(csv_path: Path, db_path: Path) -> int:
     origin_counts: Counter = Counter()
     branch_counts: Counter = Counter()
 
-    store = IncidentSeedStore(db_path)
+    try:
+        store = IncidentSeedStore(db_path)
+    except IncidentSeedStoreError:
+        print("Error: incident database could not be initialized.")
+        return 1
 
     try:
         with csv_path.open(
@@ -247,8 +254,12 @@ def seed(csv_path: Path, db_path: Path) -> int:
                 else:
                     duplicates += 1
 
-    except (OSError, csv.Error) as exc:
-        print(f"Error while reading CSV: {exc}")
+    except (OSError, csv.Error):
+        print("Error: the CSV file could not be read safely.")
+        return 1
+
+    except IncidentSeedStoreError:
+        print("Error: incident data could not be saved.")
         return 1
 
     finally:
@@ -290,18 +301,21 @@ def seed(csv_path: Path, db_path: Path) -> int:
     print_invalid_rows(invalid_rows)
 
     if total_rows == 100:
-        verify_expected_transformed_counts(
+        verification_passed = verify_expected_transformed_counts(
             valid_transformed,
             status_counts,
             category_counts,
         )
+        if not verification_passed:
+            print("\nError: transformed counts failed CONTEXT verification.")
+            return 1
     else:
         print(
             "\nCONTEXT VERIFICATION skipped: "
             f"reference CSV has 100 rows; this file has {total_rows}."
         )
 
-    print(f"\nDatabase: {db_path}")
+    print(f"\nDatabase file: {db_path.name}")
     return 0
 
 

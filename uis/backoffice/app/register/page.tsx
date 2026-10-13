@@ -59,7 +59,7 @@ export default function RegisterPage() {
         setFieldErrors(cause.fieldErrors);
         setFormError(cause.status === 409 ? "An account already exists for this email." : cause.status === 422 ? "Review the highlighted fields." : cause.message);
       } else {
-        setFormError(cause instanceof Error ? cause.message : "Account creation failed. Please try again.");
+        setFormError("Account creation failed. Please try again.");
       }
       setSubmitting(false);
       return;

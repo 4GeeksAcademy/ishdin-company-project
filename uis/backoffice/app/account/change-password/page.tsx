@@ -32,9 +32,13 @@ export default function ChangePasswordPage() {
       clearAuthSession();
       router.replace("/login?passwordChanged=success");
     } catch (cause) {
-      setError(cause instanceof AccountApiError && cause.status === 400
-        ? "The current password is incorrect."
-        : cause instanceof Error ? cause.message : "Unable to change your password.");
+      setError(
+        cause instanceof AccountApiError
+          ? cause.status === 400
+            ? "The current password is incorrect."
+            : cause.message
+          : "Unable to change your password. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }

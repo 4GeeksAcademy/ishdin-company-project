@@ -59,7 +59,7 @@ def register_user(payload: UserCreate) -> UserRegistrationResponse:
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
+            detail="An account already exists for this email.",
         ) from exc
 
     return UserRegistrationResponse(user=user, profile=profile)
@@ -126,12 +126,12 @@ def put_user(
         except PermissionError as exc:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=str(exc),
+                detail="Only an admin may change a user's role.",
             ) from exc
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=str(exc),
+                detail="An account already exists for this email.",
             ) from exc
 
         if updated is not None and payload.password is not None:

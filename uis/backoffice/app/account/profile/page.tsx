@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { AccountApiError, getCurrentAccount, updateMyProfile } from "@/lib/accountApi";
 import type { AccountProfile } from "@/lib/accountApi";
@@ -11,44 +11,46 @@ export default function AccountProfilePage() {
   const [email, setEmail] = useState("");
   const [fields, setFields] = useState<ProfileFields>({ name: "", phone: "", address: "" });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    getCurrentAccount()
-      .then((account) => {
-        if (!active) return;
-        setEmail(account.email);
-        setFields({
-          name: account.profile.name ?? "",
-          phone: account.profile.phone ?? "",
-          address: account.profile.address ?? "",
-        });
-      })
-      .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : "Unable to load your profile.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+
+    try {
+      const account = await getCurrentAccount();
+      setEmail(account.email);
+      setFields({
+        name: account.profile.name ?? "",
+        phone: account.profile.phone ?? "",
+        address: account.profile.address ?? "",
       });
-    return () => {
-      active = false;
-    };
+    } catch {
+      setLoadError("Unable to load your profile. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
 
   const updateField = (field: keyof ProfileFields, value: string) => {
     setFields((current) => ({ ...current, [field]: value }));
     setSaved(false);
-    setError("");
+    setSaveError("");
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     setSaved(false);
-    setError("");
+    setSaveError("");
+
     try {
       const profile = await updateMyProfile(fields);
       setFields({
@@ -58,9 +60,11 @@ export default function AccountProfilePage() {
       });
       setSaved(true);
     } catch (cause) {
-      setError(cause instanceof AccountApiError && cause.status === 404
-        ? "Your profile could not be found. Contact an administrator."
-        : cause instanceof Error ? cause.message : "Unable to save your profile.");
+      if (cause instanceof AccountApiError && cause.status === 404) {
+        setSaveError("Your profile could not be found. Contact an administrator.");
+      } else {
+        setSaveError("Unable to save your profile. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -78,6 +82,17 @@ export default function AccountProfilePage() {
 
       {loading ? (
         <p className="text-sm text-slate-600" role="status">Loading your profile...</p>
+      ) : loadError ? (
+        <div className="grid max-w-2xl gap-3 rounded-lg border border-red-200 bg-red-50 p-4" role="alert">
+          <p className="text-sm text-red-700">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => void loadProfile()}
+            className="min-h-10 justify-self-start rounded-lg border border-red-300 bg-white px-4 text-sm font-semibold text-red-800"
+          >
+            Try again
+          </button>
+        </div>
       ) : (
         <form onSubmit={submit} className="max-w-2xl space-y-5">
           <div>
@@ -96,7 +111,7 @@ export default function AccountProfilePage() {
             Address
             <input id="profile-address" name="address" autoComplete="street-address" value={fields.address ?? ""} onChange={(event) => updateField("address", event.target.value)} className={inputClass} />
           </label>
-          {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+          {saveError && <p className="text-sm text-red-700" role="alert">{saveError}</p>}
           {saved && <p className="text-sm text-emerald-700" role="status">Profile updated.</p>}
           <button type="submit" disabled={saving || loading} className="min-h-11 rounded-lg bg-[#3e7468] px-5 text-sm font-semibold text-white hover:bg-[#315d54] disabled:cursor-wait disabled:opacity-60">
             {saving ? "Saving..." : "Save changes"}

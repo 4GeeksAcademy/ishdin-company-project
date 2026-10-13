@@ -1,3 +1,4 @@
+import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -7,6 +8,8 @@ from dotenv import load_dotenv
 from jose import JWTError, jwt
 from passlib.hash import bcrypt
 
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -68,7 +71,13 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         return bcrypt.verify(plain_password, hashed_password)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as exc:
+        # Never log the password or stored hash. The exception type is enough
+        # to distinguish corrupted credential data from a normal mismatch.
+        logger.warning(
+            "Stored password hash could not be verified (error_type=%s).",
+            type(exc).__name__,
+        )
         return False
 
 

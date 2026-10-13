@@ -1,12 +1,7 @@
-import logging
-
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
-
-
-logger = logging.getLogger("trackflow.incidents")
 
 
 def _friendly_message(error: dict) -> str:
@@ -81,21 +76,5 @@ class IncidentAPIRoute(APIRoute):
 
             except HTTPException:
                 raise
-
-            except Exception:
-                logger.exception(
-                    "Unhandled exception in Incident Manager API."
-                )
-
-                return JSONResponse(
-                    status_code=500,
-                    content={
-                        "error": "internal_server_error",
-                        "message": (
-                            "Something went wrong while processing your "
-                            "request. Please try again."
-                        ),
-                    },
-                )
 
         return custom_route_handler
