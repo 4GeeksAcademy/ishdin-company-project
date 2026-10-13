@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { getAccessToken, getPostLoginPath, setAuthSession } from "@/lib/auth";
-import { loginUser } from "@/lib/accountApi";
+import { AccountApiError, loginUser } from "@/lib/accountApi";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,7 +35,11 @@ export default function LoginPage() {
       router.replace(getPostLoginPath());
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Sign in failed. Check your details and try again.");
+      setError(
+        cause instanceof AccountApiError
+          ? cause.message
+          : "Sign in failed. Check your details and try again.",
+      );
     } finally {
       setSubmitting(false);
     }

@@ -139,7 +139,7 @@ def update_incident_status(
                 "error": "validation_error",
                 "message": "The requested status change is not allowed.",
                 "fields": {
-                    "status": str(exc),
+                    "status": "This status transition is not allowed.",
                 },
             },
         )

@@ -1,5 +1,6 @@
 import argparse
 import csv
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -451,7 +452,7 @@ def export_results(results, output_file="results.csv"):
     print(f"\nResults exported successfully to {output_file}")
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate and analyze a TrackFlow incident CSV file."
     )
@@ -465,34 +466,51 @@ def main():
     csv_path = Path(args.csv_path)
 
     if not csv_path.exists():
-        print(f"Error: file not found: {csv_path}")
-        return
+        print("Error: the input CSV file was not found.")
+        return 1
 
     if not csv_path.is_file():
-        print(f"Error: the supplied path is not a file: {csv_path}")
-        return
+        print("Error: the supplied CSV path is not a file.")
+        return 1
 
     try:
         results = analyze_csv(csv_path)
-    except (OSError, ValueError) as error:
+    except OSError:
+        print(
+            "Error: the CSV file could not be read. "
+            "Check the file permissions and try again."
+        )
+        return 1
+    except ValueError as error:
+        # These validation messages are authored by this script and contain
+        # schema information only; filesystem exception details stay hidden.
         print(f"Error: {error}")
-        return
+        return 1
 
     print_summary(results)
-    verify_expected_results(results)
+    verification_result = verify_expected_results(results)
+    if verification_result is False:
+        return 1
 
     while True:
         choice = input("\nExport results to CSV? [y / n]: ").strip().lower()
 
         if choice == "y":
-            export_results(results)
-            break
-        elif choice == "n":
+            try:
+                export_results(results)
+            except OSError:
+                print(
+                    "Error: results could not be exported. "
+                    "Check the output location and file permissions."
+                )
+                return 1
+            return 0
+        if choice == "n":
             print("Results were not exported.")
-            break
-        else:
-            print("Please enter y or n.")
+            return 0
+
+        print("Please enter y or n.")
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

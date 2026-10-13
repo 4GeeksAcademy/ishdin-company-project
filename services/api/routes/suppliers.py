@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -18,6 +19,22 @@ from models import (
 
 
 router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
+logger = logging.getLogger(__name__)
+
+_STORAGE_ERRORS = (OSError, ValueError)
+_STORAGE_ERROR_DETAIL = "Supplier data is temporarily unavailable. Please try again."
+
+
+def _raise_storage_unavailable(operation: str, exc: Exception) -> None:
+    logger.error(
+        "Supplier storage operation failed (operation=%s, error_type=%s).",
+        operation,
+        type(exc).__name__,
+    )
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=_STORAGE_ERROR_DETAIL,
+    ) from None
 
 
 def _document_to_response(document) -> SupplierResponse:
@@ -30,7 +47,10 @@ def _document_to_response(document) -> SupplierResponse:
 
 def _get_supplier_or_404(supplier_id: int):
     """Return one TinyDB supplier document or raise HTTP 404."""
-    document = suppliers_table.get(doc_id=supplier_id)
+    try:
+        document = suppliers_table.get(doc_id=supplier_id)
+    except _STORAGE_ERRORS as exc:
+        _raise_storage_unavailable("get", exc)
 
     if document is None:
         raise HTTPException(
@@ -63,9 +83,12 @@ def create_supplier(
         updated_at=datetime.now(timezone.utc),
     )
 
-    document_id = suppliers_table.insert(
-        supplier.model_dump(mode="json")
-    )
+    try:
+        document_id = suppliers_table.insert(
+            supplier.model_dump(mode="json")
+        )
+    except _STORAGE_ERRORS as exc:
+        _raise_storage_unavailable("create", exc)
 
     return SupplierResponse(
         id=document_id,
@@ -94,7 +117,10 @@ def list_suppliers(
 
     Both filters can be used independently or together.
     """
-    documents = suppliers_table.all()
+    try:
+        documents = suppliers_table.all()
+    except _STORAGE_ERRORS as exc:
+        _raise_storage_unavailable("list", exc)
 
     country_value = country.value if country is not None else None
     category_value = category.value if category is not None else None
@@ -149,13 +175,16 @@ def update_supplier_rate(
     """
     _get_supplier_or_404(supplier_id)
 
-    suppliers_table.update(
-        {
-            "rate_per_shipment": payload.rate_per_shipment,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        },
-        doc_ids=[supplier_id],
-    )
+    try:
+        suppliers_table.update(
+            {
+                "rate_per_shipment": payload.rate_per_shipment,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            doc_ids=[supplier_id],
+        )
+    except _STORAGE_ERRORS as exc:
+        _raise_storage_unavailable("update_rate", exc)
 
     updated_document = _get_supplier_or_404(supplier_id)
     return _document_to_response(updated_document)
@@ -179,10 +208,13 @@ def update_supplier_status(
     """
     _get_supplier_or_404(supplier_id)
 
-    suppliers_table.update(
-        {"status": payload.status},
-        doc_ids=[supplier_id],
-    )
+    try:
+        suppliers_table.update(
+            {"status": payload.status},
+            doc_ids=[supplier_id],
+        )
+    except _STORAGE_ERRORS as exc:
+        _raise_storage_unavailable("update_status", exc)
 
     updated_document = _get_supplier_or_404(supplier_id)
     return _document_to_response(updated_document)
@@ -199,7 +231,10 @@ def delete_supplier(
 ) -> DeleteSupplierResponse:
     _get_supplier_or_404(supplier_id)
 
-    suppliers_table.remove(doc_ids=[supplier_id])
+    try:
+        suppliers_table.remove(doc_ids=[supplier_id])
+    except _STORAGE_ERRORS as exc:
+        _raise_storage_unavailable("delete", exc)
 
     return DeleteSupplierResponse(
         message="Supplier deleted successfully.",

@@ -46,40 +46,90 @@ export class AccountApiError extends Error {
   }
 }
 
+const safeFieldMessage = (field: keyof RegistrationInput): string => {
+  if (field === "email") return "Enter a valid email address.";
+  if (field === "password") return "Review the password requirements.";
+  return "Enter a valid value.";
+};
+
+const statusMessage = (status: number): string => {
+  if (status === 400) return "The request could not be completed. Review your input and try again.";
+  if (status === 401) return "Your session has expired. Please sign in again.";
+  if (status === 403) return "You do not have permission to perform this action.";
+  if (status === 404) return "The requested account resource could not be found.";
+  if (status === 409) return "An account already exists for this email.";
+  if (status === 422) return "Review the highlighted fields.";
+  if (status >= 500) return "The service is temporarily unavailable. Please try again.";
+  return "The request could not be completed. Please try again.";
+};
+
 async function responseError(response: Response): Promise<AccountApiError> {
   let body: { detail?: unknown } = {};
   try {
     body = await response.json();
-  } catch {}
+  } catch {
+    // Keep the generic status-based message when the error body is not JSON.
+  }
 
   const fieldErrors: Partial<Record<keyof RegistrationInput, string>> = {};
-  const fieldNames = new Set(["email", "password", "name", "phone", "address"]);
-  let message = `Request failed with HTTP ${response.status}.`;
+  const fieldNames = new Set<keyof RegistrationInput>([
+    "email",
+    "password",
+    "name",
+    "phone",
+    "address",
+  ]);
+
   if (Array.isArray(body.detail)) {
     for (const issue of body.detail) {
       if (!issue || typeof issue !== "object") continue;
-      const item = issue as { loc?: (string | number)[]; msg?: string };
-      const field = item.loc?.at(-1);
-      if (typeof field === "string" && fieldNames.has(field)) {
-        fieldErrors[field as keyof RegistrationInput] = item.msg ?? "Invalid value.";
+      const item = issue as { loc?: (string | number)[] };
+      const field = item.loc && item.loc.length > 0 ? item.loc[item.loc.length - 1] : undefined;
+      if (typeof field === "string" && fieldNames.has(field as keyof RegistrationInput)) {
+        const typedField = field as keyof RegistrationInput;
+        fieldErrors[typedField] = safeFieldMessage(typedField);
       }
     }
-    message = Object.values(fieldErrors).join(" ") || message;
-  } else if (typeof body.detail === "string") {
-    message = body.detail;
-    if (response.status === 409) fieldErrors.email = message;
   }
-  return new AccountApiError(message, response.status, fieldErrors);
+
+  if (response.status === 409) {
+    fieldErrors.email = "An account already exists for this email.";
+  }
+
+  return new AccountApiError(
+    statusMessage(response.status),
+    response.status,
+    fieldErrors,
+  );
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) throw await responseError(response);
-  return response.json() as Promise<T>;
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new AccountApiError(
+      "The server returned an invalid response. Please try again.",
+      response.status,
+    );
+  }
+}
+
+async function publicFetch(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new AccountApiError(
+      "We could not reach the account service. Check your connection and try again.",
+      0,
+    );
+  }
 }
 
 export async function loginUser(email: string, password: string): Promise<LoginTokenResponse> {
   const form = new URLSearchParams({ username: email, password });
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await publicFetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: form,
@@ -89,7 +139,7 @@ export async function loginUser(email: string, password: string): Promise<LoginT
 }
 
 export async function registerUser(input: RegistrationInput): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/users`, {
+  const response = await publicFetch(`${API_BASE_URL}/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -111,7 +161,7 @@ export async function updateMyProfile(input: ProfileUpdate): Promise<AccountProf
 }
 
 export async function requestPasswordReset(email: string): Promise<ApiMessageResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+  const response = await publicFetch(`${API_BASE_URL}/auth/forgot-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
@@ -121,7 +171,7 @@ export async function requestPasswordReset(email: string): Promise<ApiMessageRes
 }
 
 export async function resetPassword(token: string, newPassword: string): Promise<ApiMessageResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+  const response = await publicFetch(`${API_BASE_URL}/auth/reset-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, new_password: newPassword }),

@@ -1,3 +1,4 @@
+import logging
 from collections import Counter
 from pathlib import Path
 from uuid import UUID
@@ -20,6 +21,8 @@ from services.api.incidents.models import (
 )
 
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_DB_PATH = (
     Path(__file__).resolve().parent.parent / "data" / "incidents.json"
 )
@@ -39,13 +42,26 @@ class InvalidStatusTransitionError(ValueError):
         )
 
 
+class IncidentRepositoryInitializationError(RuntimeError):
+    """Raised when the incident repository cannot be initialized safely."""
+
+
 class IncidentRepository:
     def __init__(self, db_path: str | Path = DEFAULT_DB_PATH):
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.db = TinyDB(self.db_path)
-        self.table = self.db.table("incidents")
+        try:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self.db = TinyDB(self.db_path)
+            self.table = self.db.table("incidents")
+        except (OSError, ValueError) as exc:
+            logger.error(
+                "Incident repository initialization failed (error_type=%s).",
+                type(exc).__name__,
+            )
+            raise IncidentRepositoryInitializationError(
+                "Incident storage could not be initialized."
+            ) from None
 
     def close(self) -> None:
         self.db.close()

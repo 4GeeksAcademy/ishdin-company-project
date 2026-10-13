@@ -24,6 +24,38 @@ export class IncidentApiError extends Error {
   }
 }
 
+const safeMessageForStatus = (status: number): string => {
+  if (status === 400 || status === 422) {
+    return "Review the incident details and try again.";
+  }
+  if (status === 401) {
+    return "Your session has expired. Please sign in again.";
+  }
+  if (status === 403) {
+    return "You do not have permission to perform this incident action.";
+  }
+  if (status === 404) {
+    return "Incident not found. Refresh the list and try again.";
+  }
+  if (status >= 500) {
+    return "The incident service is temporarily unavailable. Please try again.";
+  }
+  return "The request could not be completed. Please try again.";
+};
+
+const safeFields = (fields: Record<string, string> | undefined): Record<string, string> => {
+  if (!fields) return {};
+
+  return Object.fromEntries(
+    Object.keys(fields).map((field) => [
+      field,
+      field === "status"
+        ? "Choose a permitted status transition."
+        : "Enter a valid value.",
+    ]),
+  );
+};
+
 const request = async <T>(
   path: string,
   init: RequestInit = {},
@@ -45,7 +77,10 @@ const request = async <T>(
     });
   } catch (error) {
     if (error instanceof AuthSessionError) {
-      throw new IncidentApiError(error.message, error.status);
+      throw new IncidentApiError(
+        "Your session has expired. Please sign in again.",
+        error.status,
+      );
     }
 
     throw new IncidentApiError(
@@ -60,26 +95,24 @@ const request = async <T>(
     try {
       body = (await response.json()) as ApiFieldError;
     } catch {
-      // The UI intentionally does not surface raw backend text.
+      // A malformed error body falls back to the status-based client message.
     }
 
-    const message =
-      body.message ??
-      body.detail ??
-      (response.status === 401
-        ? "Your session has expired. Please sign in again."
-        : response.status === 404
-          ? "Incident not found."
-          : "The request could not be completed. Please try again.");
-
     throw new IncidentApiError(
-      message,
+      safeMessageForStatus(response.status),
       response.status,
-      body.fields ?? {},
+      safeFields(body.fields),
     );
   }
 
-  return (await response.json()) as T;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new IncidentApiError(
+      "The incident service returned an invalid response. Please try again.",
+      response.status,
+    );
+  }
 };
 
 export const createIncident = (payload: IncidentCreateInput) =>
@@ -112,3 +145,4 @@ export const updateIncidentStatus = (
 
 export const getIncidentSummary = () =>
   request<IncidentSummary>("/api/incidents/summary");
+

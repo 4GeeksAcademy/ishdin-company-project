@@ -1,7 +1,6 @@
 import html
 import logging
 import os
-import re
 from email.utils import parseaddr
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
@@ -13,8 +12,6 @@ from auth.security import get_password_reset_expire_minutes
 
 logger = logging.getLogger(__name__)
 
-_EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
-_URL_PATTERN = re.compile(r"https?://[^\s\"'<>]+")
 
 
 def _password_reset_link(token: str) -> str:
@@ -51,9 +48,19 @@ def send_password_reset_email(recipient: str, token: str) -> None:
 
     try:
         reset_link = _password_reset_link(token)
-        safe_link = html.escape(reset_link, quote=True)
         expiry_minutes = get_password_reset_expire_minutes()
-        resend.api_key = api_key
+    except RuntimeError as exc:
+        logger.error(
+            "Password reset email configuration is invalid "
+            "(error_type=%s).",
+            type(exc).__name__,
+        )
+        return
+
+    safe_link = html.escape(reset_link, quote=True)
+    resend.api_key = api_key
+
+    try:
         resend.Emails.send({
             "from": sender,
             "to": [recipient],
@@ -80,19 +87,12 @@ def send_password_reset_email(recipient: str, token: str) -> None:
                 f"{reset_link}\n\nIf you did not request this, ignore this email."
             ),
         })
-    except Exception as exc:
-        if isinstance(exc, resend.exceptions.ResendError):
-            reason = _EMAIL_PATTERN.sub("[redacted email]", exc.message)
-            reason = _URL_PATTERN.sub("[redacted URL]", reason)[:300]
-            logger.warning(
-                "Password reset email rejected by Resend "
-                "(provider_error_type=%s, status=%s, reason=%s).",
-                exc.error_type,
-                exc.code,
-                reason,
-            )
-            return
+    except resend.exceptions.ResendError as exc:
+        # Provider response text may echo addresses, URLs, or other request
+        # content. Log only structured metadata that is safe for operations.
         logger.warning(
-            "Password reset email delivery failed (error_type=%s).",
-            type(exc).__name__,
+            "Password reset email rejected by Resend "
+            "(provider_error_type=%s, status=%s).",
+            exc.error_type,
+            exc.code,
         )

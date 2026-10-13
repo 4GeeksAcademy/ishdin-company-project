@@ -6,6 +6,7 @@ import SupplierFilters from "@/components/suppliers/SupplierFilters";
 import SupplierForm from "@/components/suppliers/SupplierForm";
 import SupplierTable from "@/components/suppliers/SupplierTable";
 import {
+  SupplierApiError,
   createSupplier,
   listSuppliers,
   updateSupplierRate,
@@ -44,9 +45,9 @@ export default function SupplierDirectoryPage() {
       setSuppliers(data);
     } catch (error) {
       setListError(
-        error instanceof Error
+        error instanceof SupplierApiError
           ? error.message
-          : "Unable to load suppliers."
+          : "Unable to load suppliers. Please try again."
       );
     } finally {
       setLoading(false);
@@ -83,9 +84,9 @@ export default function SupplierDirectoryPage() {
       return true;
     } catch (error) {
       setCreateError(
-        error instanceof Error
+        error instanceof SupplierApiError
           ? error.message
-          : "Unable to register supplier."
+          : "Unable to register supplier. Please try again."
       );
       return false;
     } finally {
@@ -123,9 +124,9 @@ export default function SupplierDirectoryPage() {
       return true;
     } catch (error) {
       setActionError(
-        error instanceof Error
+        error instanceof SupplierApiError
           ? error.message
-          : "Unable to update the supplier rate."
+          : "Unable to update the supplier rate. Please try again."
       );
       return false;
     } finally {
@@ -148,9 +149,9 @@ export default function SupplierDirectoryPage() {
       replaceSupplier(updated);
     } catch (error) {
       setActionError(
-        error instanceof Error
+        error instanceof SupplierApiError
           ? error.message
-          : "Unable to update the supplier status."
+          : "Unable to update the supplier status. Please try again."
       );
     } finally {
       setBusySupplierId(null);

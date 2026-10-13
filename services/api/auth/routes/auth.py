@@ -32,8 +32,12 @@ def _process_password_reset_request(email: str) -> None:
             token = password_reset_service.issue_password_reset_token(user.id)
             if token:
                 send_password_reset_email(str(user.email), token)
-    except Exception:
-        logger.warning("Password reset request could not be processed.")
+    except (OSError, RuntimeError, ValueError) as exc:
+        logger.error(
+            "Password reset request could not be processed "
+            "(error_type=%s).",
+            type(exc).__name__,
+        )
 
 
 @router.post(
