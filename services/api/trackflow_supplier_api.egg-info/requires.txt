@@ -1,8 +1,11 @@
 fastapi<1.0,>=0.115
 email-validator<3.0,>=2.0
-libpass[bcrypt]>=1.9.3
+python-multipart>=0.0.9
 pydantic<3.0,>=2.7
-python-jose[cryptography]>=3.5.0
+python-jose[cryptography]<4.0,>=3.3
+python-dotenv<2.0,>=1.0
 tinydb<5.0,>=4.8
+passlib[bcrypt]<2.0,>=1.7
+bcrypt<4.1,>=4.0.1
 resend<3.0,>=2.0
 uvicorn[standard]<1.0,>=0.30
