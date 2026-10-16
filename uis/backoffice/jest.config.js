@@ -4,11 +4,19 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/__tests__"],
   testMatch: ["**/*.test.ts"],
-  collectCoverageFrom: ["lib/auth.ts"],
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/$1"
+  },
+  collectCoverageFrom: [
+    "lib/auth.ts",
+    "lib/accountApi.ts",
+    "lib/supplierApi.ts",
+    "lib/incidentApi.ts"
+  ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov"],
   coverageThreshold: {
-    global: {
+    "./lib/auth.ts": {
       statements: 70,
       branches: 60,
       functions: 70,

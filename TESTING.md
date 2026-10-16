@@ -153,3 +153,84 @@ The tests instead assert what TrackFlow decides: authenticate or reject, authori
 ## AI-assisted workflow note
 
 AI was used to identify candidate edge cases and generate test boilerplate. The selected cases are intentionally tied to TrackFlow's current authentication logic. If a test reveals a real defect in production logic, document the defect and the production fix in this file before merging.
+
+---
+
+# API-042 — Backoffice Endpoint Unit Tests
+
+API-042 extends the same unit-testing discipline to two non-authentication endpoint groups in the TrackFlow backoffice API:
+
+1. **Supplier management** — `routes/suppliers.py`
+2. **Incident management** — `services/api/incidents/routes.py` plus its `IncidentRepository` business logic
+
+The tests call the Python endpoint functions directly. They do not test JSON serialization, ASGI networking, Starlette routing, or browser behavior.
+
+## Three-tier plan
+
+### Supplier management
+
+| Endpoint | Happy path | Edge case | Failure mode |
+|---|---|---|---|
+| `POST /suppliers` | Valid supplier is persisted and returned | Optional fields omitted | TinyDB insert failure becomes safe 503 |
+| `GET /suppliers` | Country + category filters return correct records | No matches returns `[]` | TinyDB read failure becomes safe 503 |
+| `GET /suppliers/{id}` | Existing supplier is returned | Optional `None` fields remain valid | Missing supplier returns 404 |
+| `PATCH /suppliers/{id}/rate` | Rate and audit timestamp update | Small positive rate boundary | TinyDB write failure becomes safe 503 |
+| `PATCH /suppliers/{id}/status` | Supplier can be suspended | Status change preserves rate-update timestamp | Missing supplier returns 404 |
+| `DELETE /suppliers/{id}` | Supplier is removed | Response preserves deleted ID for caller tracking | TinyDB delete failure becomes safe 503 |
+
+### Incident management
+
+| Endpoint | Happy path | Edge case | Failure mode |
+|---|---|---|---|
+| `POST /api/incidents` | Valid incident is persisted | Surrounding text whitespace is normalized | Repository/storage failure is not silently swallowed |
+| `GET /api/incidents` | Status/origin/branch/category filters work together | No match returns `[]` | Repository read failure propagates to the API error boundary |
+| `GET /api/incidents/summary` | Domain counts are correct | Empty repository returns zeroed metrics | Repository failure is not converted to fake metrics |
+| `GET /api/incidents/{id}` | Existing incident is returned | UUID identity is preserved | Missing incident maps to 404 |
+| `PATCH /api/incidents/{id}/status` | Valid lifecycle transition succeeds | Invalid transition returns safe field-level 400 | Missing incident maps to 404 |
+
+## Test modules
+
+```text
+services/api/tests/test_backoffice_suppliers_unit.py
+services/api/tests/test_backoffice_incidents_unit.py
+```
+
+The supplier tests replace the production TinyDB table with `MemoryStorage`. The incident tests use a real `IncidentRepository` backed by `tmp_path`, so every test gets an isolated temporary database that is deleted by pytest.
+
+## Running API-042
+
+From `services/api`:
+
+```bash
+uv run pytest \
+  tests/test_backoffice_suppliers_unit.py \
+  tests/test_backoffice_incidents_unit.py
+```
+
+Run targeted coverage for the modules exercised by this ticket:
+
+```bash
+uv run pytest \
+  tests/test_backoffice_suppliers_unit.py \
+  tests/test_backoffice_incidents_unit.py \
+  --cov=routes.suppliers \
+  --cov=services.api.incidents.routes \
+  --cov=services.api.incidents.repository \
+  --cov-report=term-missing \
+  --cov-fail-under=60
+```
+
+API-042's acceptance threshold is **60%** for the selected backoffice modules. Keep the existing AUTH-088 authentication threshold and test suite unchanged.
+
+## Coverage result recording
+
+After running the coverage command in the project Codespace, paste the emitted per-module percentages here before merge. The acceptance requirement is that the selected supplier/incident modules are at or above 60% and the command exits successfully.
+
+| Module | Required | Result |
+|---|---:|---:|
+| `routes.suppliers` | 60% | Run in Codespace |
+| `services.api.incidents.routes` | 60% | Run in Codespace |
+| `services.api.incidents.repository` | 60% | Run in Codespace |
+
+> The suite was designed to execute the normal, edge, and failure branches in these modules. Actual percentages must be recorded from the repository environment rather than guessed.
+
