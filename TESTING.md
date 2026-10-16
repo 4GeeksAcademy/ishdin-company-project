@@ -234,3 +234,48 @@ After running the coverage command in the project Codespace, paste the emitted p
 
 > The suite was designed to execute the normal, edge, and failure branches in these modules. Actual percentages must be recorded from the repository environment rather than guessed.
 
+--
+# FE-019 apply instructions
+
+Copy these new test modules into the existing Next.js backoffice project:
+
+```text
+uis/backoffice/__tests__/account-api-utils.test.ts
+uis/backoffice/__tests__/supplier-api-utils.test.ts
+uis/backoffice/__tests__/incident-api-utils.test.ts
+```
+
+Replace the existing Jest configuration with:
+
+```text
+uis/backoffice/jest.config.js
+```
+
+The updated config adds `moduleNameMapper` for the existing `@/` import alias and expands coverage collection to the tested utility modules while keeping the AUTH-088 threshold scoped to `lib/auth.ts`.
+
+Append the contents of:
+
+```text
+FE019_TESTING_SECTION.md
+```
+
+to the repository's existing root `TESTING.md`. This avoids overwriting the AUTH-088/API-042 documentation you already have.
+
+No production React/TypeScript source file is changed by FE-019.
+
+After copying the files, run:
+
+```bash
+cd uis/backoffice
+npm install
+npm test
+npm run test:coverage
+```
+
+If Jest reports that it cannot resolve an import beginning with `@/`, confirm that the supplied `jest.config.js` replaced the older config and contains:
+
+```js
+moduleNameMapper: {
+  "^@/(.*)$": "<rootDir>/$1"
+}
+```
