@@ -8,6 +8,8 @@ from app.api.incidents import router as incidents_router
 from auth.routes.auth import router as auth_router
 from auth.routes.profiles import router as profiles_router
 from auth.routes.users import router as users_router
+from inventory.database import init_supabase_schema, seed_inventory_data
+from inventory.routers.inventory import router as inventory_router
 from services.api.incidents.routes import router as incident_manager_router
 from routes.suppliers import router as suppliers_router
 from seed import seed_suppliers
@@ -34,6 +36,18 @@ async def lifespan(app: FastAPI):
         )
         raise RuntimeError(
             "TrackFlow could not initialize supplier data."
+        ) from None
+
+    try:
+        init_supabase_schema()
+        seed_inventory_data()
+    except (OSError, RuntimeError, ValueError) as exc:
+        logger.error(
+            "Inventory startup initialization failed (error_type=%s).",
+            type(exc).__name__,
+        )
+        raise RuntimeError(
+            "TrackFlow could not initialize inventory data."
         ) from None
 
     logger.info(
@@ -72,6 +86,7 @@ app.include_router(incident_manager_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(profiles_router)
+app.include_router(inventory_router)
 
 
 @app.get("/health", tags=["System"])

@@ -14,3 +14,5 @@ Requires-Dist: passlib[bcrypt]<2.0,>=1.7
 Requires-Dist: bcrypt<4.1,>=4.0.1
 Requires-Dist: resend<3.0,>=2.0
 Requires-Dist: uvicorn[standard]<1.0,>=0.30
+Requires-Dist: sqlmodel>=0.0.48
+Requires-Dist: psycopg2-binary>=2.9.13
