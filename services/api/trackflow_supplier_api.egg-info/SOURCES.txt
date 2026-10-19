@@ -19,6 +19,8 @@ tests/test_auth_user_delete.py
 tests/test_auth_user_get.py
 tests/test_auth_user_update.py
 tests/test_auth_users_list.py
+tests/test_backoffice_incidents_unit.py
+tests/test_backoffice_suppliers_unit.py
 tests/test_suppliers.py
 trackflow_supplier_api.egg-info/PKG-INFO
 trackflow_supplier_api.egg-info/SOURCES.txt
