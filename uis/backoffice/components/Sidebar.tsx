@@ -9,6 +9,7 @@ const navItems = [
   { href: "/incident-analysis", label: "Incident Analysis" },
   { href: "/incidents", label: "Incidents" },
   { href: "/suppliers", label: "Suppliers" },
+  { href: "/backoffice/inventory/products", label: "Inventory" },
   { href: "/account/profile", label: "Account profile" },
   { href: "/account/change-password", label: "Change password" },
 ];
@@ -16,6 +17,7 @@ const navItems = [
 export default function Sidebar({ trackerUrl }: { trackerUrl: string }) {
   const pathname = usePathname();
   const items = [...navItems, { href: trackerUrl, label: "Talent Pipeline Tracker" }];
+
   return (
     <aside className="w-full bg-slate-950 text-white md:min-h-screen md:w-64">
       <div className="px-6 py-6">
@@ -24,10 +26,15 @@ export default function Sidebar({ trackerUrl }: { trackerUrl: string }) {
       </div>
       <nav className="flex gap-2 overflow-x-auto px-4 pb-4 md:block md:space-y-2">
         {items.map((item) => {
-          const active = pathname === item.href;
+          const inventoryActive = item.href === "/backoffice/inventory/products" && pathname.startsWith("/backoffice/inventory");
+          const internalActive = item.href.startsWith("/") && item.href !== "/" && pathname.startsWith(`${item.href}/`);
+          const active = pathname === item.href || inventoryActive || internalActive;
           return (
-            <Link key={item.href} href={item.href}
-              className={`block whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium ${active ? "bg-sky-500 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`block whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium ${active ? "bg-sky-500 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}
+            >
               {item.label}
             </Link>
           );
