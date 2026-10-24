@@ -1,0 +1,80 @@
+services:
+  backend:
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+
+    env_file:
+      - .env
+
+    environment:
+      WATCHFILES_FORCE_POLLING: "true"
+
+    volumes:
+      - ./services:/app/services
+
+    ports:
+      - "8000:8000"
+
+    networks:
+      - trackflow-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+
+  ui:
+    build:
+      context: ./uis
+      dockerfile: Dockerfile
+
+    environment:
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://backend:8000}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/backend}
+      WATCHPACK_POLLING: "true"
+
+    volumes:
+      - ./uis:/app
+
+      # Keep container-installed dependencies from being replaced
+      # by the host bind mount.
+      - website_node_modules:/app/website/node_modules
+      - backoffice_node_modules:/app/backoffice/node_modules
+
+      # Keep Next.js generated files inside Docker.
+      - website_next:/app/website/.next
+      - backoffice_next:/app/backoffice/.next
+
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    networks:
+      - trackflow-network
+
+
+networks:
+  trackflow-network:
+    name: trackflow-network
+    driver: bridge
+
+
+volumes:
+  website_node_modules:
+  backoffice_node_modules:
+  website_next:
+  backoffice_next:

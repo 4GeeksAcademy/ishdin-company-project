@@ -24,4 +24,4 @@ RUN sed -i 's/\r$//' /app/start.sh \
 
 EXPOSE 3000 3001
 
-CMD ["/app/start.sh"]
+CMD ["sh", "/app/start.sh"]
