@@ -1,0 +1,4 @@
+{
+  "name": "TrackFlow Codespace",
+  "postStartCommand": "sudo iptables-legacy -P FORWARD ACCEPT"
+}

@@ -12,6 +12,7 @@ services:
 
     volumes:
       - ./services:/app/services
+      - ./packages:/app/packages
 
     ports:
       - "8000:8000"
