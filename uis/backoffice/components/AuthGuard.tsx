@@ -22,7 +22,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const redirectToLogin = () => {
       setAuthorizedPath(null);
       const next = window.location.pathname + window.location.search;
-      router.replace(`/login?${new URLSearchParams({ next })}`);
+      window.location.replace(`/login?${new URLSearchParams({ next })}`);
     };
 
     const validateSession = async () => {

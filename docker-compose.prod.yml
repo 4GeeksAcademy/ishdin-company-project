@@ -1,0 +1,72 @@
+services:
+  backend:
+    command: uvicorn services.api.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped 
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+
+    env_file:
+      - .env
+
+    environment:
+      WATCHFILES_FORCE_POLLING: "true"
+
+    volumes:
+      - ./services:/app/services
+      - ./packages:/app/packages
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    networks:
+      - trackflow-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+
+  ui:
+    restart: unless-stopped
+    build:
+      context: ./uis
+      dockerfile: Dockerfile.prod
+
+    environment:
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://backend:8000}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/backend}
+
+
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3001"
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    networks:
+      - trackflow-network
+
+
+networks:
+  trackflow-network:
+    name: trackflow-network
+    driver: bridge
+
+
+volumes:
+  website_node_modules:
+  backoffice_node_modules:
+  website_next:
+  backoffice_next:
