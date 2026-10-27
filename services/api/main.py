@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.incidents import router as incidents_router
 from auth.routes.auth import router as auth_router
@@ -41,7 +42,7 @@ async def lifespan(app: FastAPI):
     try:
         init_supabase_schema()
         seed_inventory_data()
-    except (OSError, RuntimeError, ValueError) as exc:
+    except (OSError, RuntimeError, ValueError, SQLAlchemyError) as exc:
         logger.error(
             "Inventory startup initialization failed (error_type=%s).",
             type(exc).__name__,
