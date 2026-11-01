@@ -16,6 +16,11 @@
     <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" />
   </noscript>
+  <style>
+  .text-signal-accessible {
+    color: #9a5f00;
+  }
+  </style>
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -58,8 +63,8 @@
         </a>
 
         <!-- Mobile menu toggle (pure CSS, no JavaScript) -->
-        <input type="checkbox" id="nav-toggle" class="peer hidden" />
-        <label for="nav-toggle" class="md:hidden inline-flex flex-col justify-center gap-1.5 w-9 h-9 cursor-pointer" aria-label="Toggle navigation menu">
+        <input type="checkbox" id="nav-toggle" class="peer sr-only md:hidden" aria-label="Toggle navigation menu" />
+        <label for="nav-toggle" class="md:hidden inline-flex flex-col justify-center gap-1.5 w-9 h-9 cursor-pointer">
           <span class="block h-0.5 w-full bg-ink"></span>
           <span class="block h-0.5 w-full bg-ink"></span>
           <span class="block h-0.5 w-7 bg-ink"></span>
@@ -111,7 +116,7 @@
 
           <!-- Company & contact -->
           <fieldset class="grid sm:grid-cols-2 gap-6">
-            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal font-semibold mb-1 sm:col-span-2">Company &amp; contact</legend>
+            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal-accessible font-semibold mb-1 sm:col-span-2">Company &amp; contact</legend>
 
             <div>
               <label for="companyName" class="block font-mono text-[10px] uppercase tracking-[0.15em] text-steel mb-2">Company name <span class="text-danger">*</span></label>
@@ -151,7 +156,7 @@
 
           <!-- Operation profile -->
           <fieldset class="grid sm:grid-cols-2 gap-6">
-            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal font-semibold mb-1 sm:col-span-2">Your operation</legend>
+            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal-accessible font-semibold mb-1 sm:col-span-2">Your operation</legend>
 
             <div>
               <label for="country" class="block font-mono text-[10px] uppercase tracking-[0.15em] text-steel mb-2">Main operating country <span class="text-danger">*</span></label>
@@ -206,7 +211,7 @@
 
           <!-- Services of interest -->
           <fieldset>
-            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal font-semibold mb-3">Services of interest <span class="text-danger">*</span></legend>
+            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal-accessible font-semibold mb-3">Services of interest <span class="text-danger">*</span></legend>
             <div id="servicesGroup" class="grid sm:grid-cols-3 gap-3 border border-ink/15 rounded-sm p-4">
               <label class="flex items-center gap-3 text-sm text-ink">
                 <input type="checkbox" name="services" value="warehousing" class="w-4 h-4 accent-signal" />
@@ -226,7 +231,7 @@
 
           <!-- Current 3PL -->
           <fieldset>
-            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal font-semibold mb-3">Do you currently work with another 3PL? <span class="text-danger">*</span></legend>
+            <legend class="font-mono text-xs uppercase tracking-[0.2em] text-signal-accessible font-semibold mb-3">Do you currently work with another 3PL? <span class="text-danger">*</span></legend>
             <div id="current3plGroup" class="flex flex-wrap gap-6 border border-ink/15 rounded-sm p-4">
               <label class="flex items-center gap-2 text-sm text-ink">
                 <input type="radio" name="current3pl" value="yes" class="w-4 h-4 accent-signal" />
@@ -274,7 +279,7 @@
 
         <!-- ============ SUCCESS PANEL ============ -->
         <div id="successPanel" class="hidden text-center border border-signal/40 bg-paper rounded-sm p-8 sm:p-14" role="status" tabindex="-1">
-          <span class="inline-block -rotate-6 border-2 border-dashed border-signal text-signal font-mono text-xs uppercase tracking-[0.2em] px-4 py-2 rounded-sm">
+          <span class="inline-block -rotate-6 border-2 border-dashed border-signal text-signal-accessible font-mono text-xs uppercase tracking-[0.2em] px-4 py-2 rounded-sm">
             Request received
           </span>
           <h2 class="mt-6 font-display font-black text-2xl sm:text-3xl text-ink">Thank you for your interest in TrackFlow!</h2>
