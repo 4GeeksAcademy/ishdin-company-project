@@ -106,12 +106,12 @@ export const IncidentRegistrationForm = ({ onCreated }: Props) => {
       )}
 
       {formError && (
-        <div
+        <p
+          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
           role="alert"
-          className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200"
         >
           {formError}
-        </div>
+        </p>
       )}
 
       <form onSubmit={submit} className="space-y-4">
