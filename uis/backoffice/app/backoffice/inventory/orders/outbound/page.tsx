@@ -2,22 +2,26 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
+import { useInventoryProducts } from "@/hooks/useInventoryProducts";
 import {
   createOutboundOrder,
   getProduct,
-  getProducts,
   InventoryApiError,
 } from "@/lib/inventory";
 import type { ExitType, InventoryProduct } from "@/lib/inventory";
 
 export default function OutboundOrderPage() {
-  const [products, setProducts] = useState<InventoryProduct[]>([]);
-  const [productId, setProductId] = useState("");
+  const {
+    products,
+    productId,
+    setProductId,
+    loadingProducts,
+    productsError,
+  } = useInventoryProducts();
   const [selectedProduct, setSelectedProduct] = useState<InventoryProduct | null>(null);
   const [quantity, setQuantity] = useState("");
   const [exitType, setExitType] = useState<ExitType>("dispatch");
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingStock, setLoadingStock] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -32,7 +36,6 @@ export default function OutboundOrderPage() {
     enteredQuantity > (selectedProduct?.current_stock ?? 0);
 
   const selectProduct = async (nextId: string) => {
-    setProductId(nextId);
     setSelectedProduct(null);
     setQuantityError("");
     setFormError("");
@@ -56,30 +59,18 @@ export default function OutboundOrderPage() {
   };
 
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoadingProducts(true);
-      setFormError("");
-      try {
-        const rows = await getProducts();
-        setProducts(rows);
-        const requested = new URLSearchParams(window.location.search).get("sku_id");
-        if (requested && rows.some((row) => row.id === Number(requested))) {
-          await selectProduct(requested);
-        }
-      } catch (cause) {
-        setFormError(
-          cause instanceof InventoryApiError
-            ? cause.message
-            : "Unable to load products. Check your connection and try again.",
-        );
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-    void loadProducts();
-    // selectProduct deliberately reads only stable state setters and API helpers.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  if (loadingProducts) return;
+
+  if (!productId) {
+    setSelectedProduct(null);
+    return;
+  }
+
+  void selectProduct(productId);
+
+  // selectProduct uses stable state setters and API helpers.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [productId, loadingProducts]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -158,7 +149,7 @@ export default function OutboundOrderPage() {
           <select
             id="outbound-product"
             value={productId}
-            onChange={(event) => void selectProduct(event.target.value)}
+            onChange={(event) => setProductId(event.target.value)}
             disabled={loadingProducts || submitting}
             className={inputClass}
           >
@@ -249,7 +240,7 @@ export default function OutboundOrderPage() {
           </label>
         )}
 
-        {formError && <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">{formError}</p>}
+        {(productsError || formError) && (<p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">{productsError || formError}</p>)}
         {success && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700" role="status">{success}</p>}
 
         <button

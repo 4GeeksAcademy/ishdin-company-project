@@ -1,16 +1,20 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
-import { createInboundOrder, getProducts, InventoryApiError } from "@/lib/inventory";
-import type { InventoryProduct } from "@/lib/inventory";
+import { useInventoryProducts } from "@/hooks/useInventoryProducts";
+import { createInboundOrder, InventoryApiError } from "@/lib/inventory";
 
 export default function InboundOrderPage() {
-  const [products, setProducts] = useState<InventoryProduct[]>([]);
-  const [productId, setProductId] = useState("");
+  const {
+    products,
+    productId,
+    setProductId,
+    loadingProducts,
+    productsError,
+  } = useInventoryProducts();
   const [quantity, setQuantity] = useState("");
   const [reference, setReference] = useState("");
-  const [loadingProducts, setLoadingProducts] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -19,28 +23,6 @@ export default function InboundOrderPage() {
     () => products.find((product) => product.id === Number(productId)) ?? null,
     [productId, products],
   );
-
-  useEffect(() => {
-    const loadProducts = async () => {
-      setLoadingProducts(true);
-      setError("");
-      try {
-        const rows = await getProducts();
-        setProducts(rows);
-        const requested = new URLSearchParams(window.location.search).get("sku_id");
-        if (requested && rows.some((row) => row.id === Number(requested))) setProductId(requested);
-      } catch (cause) {
-        setError(
-          cause instanceof InventoryApiError
-            ? cause.message
-            : "Unable to load products. Check your connection and try again.",
-        );
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-    void loadProducts();
-  }, []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -154,7 +136,7 @@ export default function InboundOrderPage() {
           <span className="mt-1 block text-xs font-normal text-slate-500">Use the client dispatch, purchase order, or goods-receipt reference.</span>
         </label>
 
-        {error && <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
+        {(productsError || error) && (<p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">{productsError || error}</p>)}
         {success && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700" role="status">{success}</p>}
 
         <button

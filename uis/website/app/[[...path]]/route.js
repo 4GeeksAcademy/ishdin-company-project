@@ -41,7 +41,10 @@ export async function GET(request, context) {
       headers: {
         "Content-Type":
           contentTypes[extension] ?? "application/octet-stream",
-        "Cache-Control": "no-store",
+       "Cache-Control":
+         extension === ".html"
+           ? "no-cache, must-revalidate"
+           : "public, max-age=86400, stale-while-revalidate=604800",
       },
     });
   } catch {
