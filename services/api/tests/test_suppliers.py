@@ -82,6 +82,50 @@ def test_authenticated_crud_and_filters(auth_headers, supplier_payload, isolated
     assert client.delete(path, headers=headers).status_code == 200
     assert client.get(path, headers=headers).status_code == 404
 
+def test_supplier_list_hides_detail_only_fields(
+    auth_headers,
+    supplier_payload,
+):
+    headers = auth_headers()
+
+    create_response = client.post(
+        "/suppliers",
+        json={
+            **supplier_payload,
+            "contact_email": "ops@example.com",
+            "notes": "Internal supplier notes",
+        },
+        headers=headers,
+    )
+
+    assert create_response.status_code == 201
+    supplier_id = create_response.json()["id"]
+
+    list_response = client.get(
+        "/suppliers",
+        headers=headers,
+    )
+
+    assert list_response.status_code == 200
+
+    listed_supplier = list_response.json()[0]
+
+    assert listed_supplier["id"] == supplier_id
+    assert "contact_email" not in listed_supplier
+    assert "notes" not in listed_supplier
+
+    detail_response = client.get(
+        f"/suppliers/{supplier_id}",
+        headers=headers,
+    )
+
+    assert detail_response.status_code == 200
+
+    detail_supplier = detail_response.json()
+
+    assert detail_supplier["contact_email"] == "ops@example.com"
+    assert detail_supplier["notes"] == "Internal supplier notes"
+
 
 @pytest.mark.parametrize("caller", [2, 3])
 def test_all_authenticated_users_can_read_and_mutate(caller, auth_headers, supplier_payload):

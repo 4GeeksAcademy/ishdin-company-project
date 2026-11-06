@@ -151,6 +151,7 @@ def put_user(
 
 @router.delete(
     "/{user_id}",
+    response_model=None,
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a user and linked profile",
 )

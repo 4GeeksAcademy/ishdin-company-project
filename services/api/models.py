@@ -74,9 +74,22 @@ class Supplier(SupplierBase):
 
 class SupplierResponse(Supplier):
     """Response model including TinyDB-assigned ID."""
-
     id: int = Field(..., gt=0)
 
+class SupplierListItem(BaseModel):
+    """Slim supplier projection used by the directory list."""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    id: int = Field(..., gt=0)
+    name: str
+    country: SupplierCountry
+    categories: list[SupplierCategory]
+    rate_per_shipment: float
+    currency: SupplierCurrency
+    status: SupplierStatus
+    updated_at: datetime
+    service_zone: Optional[str] = None
 
 class SupplierRateUpdate(BaseModel):
     """Input model for PATCH /suppliers/{id}/rate."""

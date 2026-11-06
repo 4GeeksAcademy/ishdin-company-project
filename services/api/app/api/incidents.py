@@ -109,6 +109,8 @@ def analyze_incidents(
 
 @router.get(
     "/results/export",
+    response_model=None,
+    response_class=Response,
     summary="Download the most recent incident analysis as CSV",
 )
 def export_latest_results(

@@ -3,14 +3,14 @@ import logging
 from tinydb import Query
 
 from auth.database import profiles_table
-from auth.models import ProfileResponse, ProfileUpdate
+from auth.models import ProfileStored, ProfileUpdate
 
 
 logger = logging.getLogger(__name__)
 
 
-def _to_profile_response(document) -> ProfileResponse:
-    return ProfileResponse(**dict(document))
+def _to_profile_stored(document) -> ProfileStored:
+    return ProfileStored(**dict(document))
 
 
 def _rollback_profile(profile_id: int) -> None:
@@ -31,7 +31,7 @@ def create_profile(
     name: str | None = None,
     phone: str | None = None,
     address: str | None = None,
-) -> ProfileResponse:
+) -> ProfileStored:
     existing = get_profile_by_user_id(user_id)
 
     if existing is not None:
@@ -60,23 +60,23 @@ def create_profile(
         _rollback_profile(profile_id)
         raise RuntimeError("Profile could not be verified after creation.")
 
-    return _to_profile_response(document)
+    return _to_profile_stored(document)
 
 
-def get_profile_by_user_id(user_id: int) -> ProfileResponse | None:
+def get_profile_by_user_id(user_id: int) -> ProfileStored | None:
     query = Query()
     document = profiles_table.get(query.user_id == user_id)
 
     if document is None:
         return None
 
-    return _to_profile_response(document)
+    return _to_profile_stored(document)
 
 
 def update_profile_for_user(
     user_id: int,
     payload: ProfileUpdate,
-) -> ProfileResponse | None:
+) -> ProfileStored | None:
     query = Query()
     document = profiles_table.get(query.user_id == user_id)
 
@@ -89,7 +89,7 @@ def update_profile_for_user(
         profiles_table.update(changes, query.user_id == user_id)
 
     updated = profiles_table.get(query.user_id == user_id)
-    return _to_profile_response(updated)
+    return _to_profile_stored(updated)
 
 
 def delete_profile_for_user(user_id: int) -> int:
