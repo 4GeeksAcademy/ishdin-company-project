@@ -12,6 +12,7 @@ from models import (
     SupplierCategory,
     SupplierCountry,
     SupplierCreate,
+    SupplierListItem,
     SupplierRateUpdate,
     SupplierResponse,
     SupplierStatusUpdate,
@@ -44,6 +45,19 @@ def _document_to_response(document) -> SupplierResponse:
         **dict(document),
     )
 
+def _document_to_list_item(document) -> SupplierListItem:
+    """Convert a TinyDB supplier document into the slim list shape."""
+    return SupplierListItem(
+        id=document.doc_id,
+        name=document["name"],
+        country=document["country"],
+        categories=document["categories"],
+        rate_per_shipment=document["rate_per_shipment"],
+        currency=document["currency"],
+        status=document["status"],
+        updated_at=document["updated_at"],
+        service_zone=document.get("service_zone"),
+    )
 
 def _get_supplier_or_404(supplier_id: int):
     """Return one TinyDB supplier document or raise HTTP 404."""
@@ -98,7 +112,7 @@ def create_supplier(
 
 @router.get(
     "",
-    response_model=list[SupplierResponse],
+    response_model=list[SupplierListItem],
     summary="List or filter suppliers",
 )
 def list_suppliers(
@@ -111,7 +125,7 @@ def list_suppliers(
         description="Filter by product category.",
     ),
     current_user: UserStored = Depends(get_current_user),
-) -> list[SupplierResponse]:
+) -> list[SupplierListItem]:
     """
     Return all suppliers when no filters are provided.
 
@@ -140,8 +154,8 @@ def list_suppliers(
         ]
 
     return [
-        _document_to_response(document)
-        for document in documents
+    _document_to_list_item(document)
+    for document in documents
     ]
 
 

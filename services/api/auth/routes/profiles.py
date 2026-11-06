@@ -27,7 +27,11 @@ def get_my_profile(
             detail="Profile not found.",
         )
 
-    return profile
+    return ProfileResponse(
+    name=profile.name,
+    phone=profile.phone,
+    address=profile.address,
+)
 
 
 @router.put(
@@ -47,4 +51,8 @@ def update_my_profile(
             detail="Profile not found.",
         )
 
-    return profile
+    return ProfileResponse(
+    name=profile.name,
+    phone=profile.phone,
+    address=profile.address,
+)

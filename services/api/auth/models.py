@@ -57,8 +57,10 @@ class ProfileStored(BaseModel):
     address: Optional[str] = None
 
 
-class ProfileResponse(ProfileStored):
-    pass
+class ProfileResponse(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
 
 
 class ProfileUpdate(BaseModel):

@@ -130,5 +130,9 @@ def auth_me(
         id=current_user.id,
         email=current_user.email,
         role=current_user.role,
-        profile=profile,
+        profile=ProfileResponse(
+        name=profile.name,
+        phone=profile.phone,
+        address=profile.address,
+),
     )

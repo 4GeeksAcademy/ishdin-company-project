@@ -4,6 +4,7 @@ from auth.dependencies import get_current_user
 from auth.services.password_reset_service import invalidate_password_reset_tokens
 from auth.services.password_lock import password_change_lock
 from auth.models import (
+    MessageResponse,
     UserCreate,
     UserRegistrationResponse,
     UserResponse,
@@ -49,20 +50,22 @@ def _require_self_or_admin(
 
 @router.post(
     "",
-    response_model=UserRegistrationResponse,
+    response_model=MessageResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
 )
-def register_user(payload: UserCreate) -> UserRegistrationResponse:
+def register_user(payload: UserCreate) -> MessageResponse:
     try:
-        user, profile = create_user(payload)
+        create_user(payload)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account already exists for this email.",
         ) from exc
 
-    return UserRegistrationResponse(user=user, profile=profile)
+    return MessageResponse(
+        detail="Account created successfully."
+    )
 
 
 @router.get(
@@ -148,6 +151,7 @@ def put_user(
 
 @router.delete(
     "/{user_id}",
+    response_model=None,
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a user and linked profile",
 )
