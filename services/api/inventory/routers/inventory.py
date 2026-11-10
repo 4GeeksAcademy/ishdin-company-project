@@ -1,5 +1,5 @@
 from typing import Any
-
+from services.api.cache import app_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlmodel import Session, select
@@ -21,7 +21,8 @@ from ..schemas import (
 from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
-
+PRODUCTS_CACHE_KEY = "inventory:products"
+PRODUCTS_CACHE_TTL_SECONDS = 30
 
 def _user_uuid(current_user: Any) -> str:
     """Extract the TinyDB user's UUID without coupling inventory to a SQL User model."""
@@ -91,8 +92,27 @@ def _sku_response(session: Session, sku: SKU) -> SKUResponse:
 
 @router.get("/products", response_model=list[SKUResponse])
 def list_products(db: Session = Depends(get_db)):
-    products = db.exec(select(SKU).order_by(SKU.id)).all()
-    return [_sku_response(db, product) for product in products]
+    cached_products = app_cache.get(PRODUCTS_CACHE_KEY)
+
+    if cached_products is not None:
+        return cached_products
+
+    products = db.exec(
+        select(SKU).order_by(SKU.id)
+    ).all()
+
+    response = [
+        _sku_response(db, product)
+        for product in products
+    ]
+
+    app_cache.set(
+        PRODUCTS_CACHE_KEY,
+        response,
+        ttl_seconds=PRODUCTS_CACHE_TTL_SECONDS,
+    )
+
+    return response
 
 
 @router.post(
@@ -123,6 +143,7 @@ def create_product(
     product = SKU(**payload.model_dump(mode="json"))
     db.add(product)
     db.commit()
+    app_cache.delete(PRODUCTS_CACHE_KEY)
     db.refresh(product)
 
     # New product starts at zero because stock is movement-derived only.
@@ -162,6 +183,9 @@ def create_inbound_order(
     )
     db.add(entry)
     db.commit()
+
+    app_cache.delete(PRODUCTS_CACHE_KEY)
+
     db.refresh(entry)
 
     return StockEntryResponse.model_validate(entry)
@@ -204,6 +228,9 @@ def create_outbound_order(
     )
     db.add(stock_exit)
     db.commit()
+
+    app_cache.delete(PRODUCTS_CACHE_KEY)
+    
     db.refresh(stock_exit)
 
     return StockExitResponse.model_validate(stock_exit)
