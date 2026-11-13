@@ -23,6 +23,8 @@ from auth.dependencies import get_current_user
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 PRODUCTS_CACHE_KEY = "inventory:products"
 PRODUCTS_CACHE_TTL_SECONDS = 30
+ORDERS_CACHE_KEY = "inventory:orders"
+ORDERS_CACHE_TTL_SECONDS = 60
 
 def _user_uuid(current_user: Any) -> str:
     """Extract the TinyDB user's UUID without coupling inventory to a SQL User model."""
@@ -144,6 +146,7 @@ def create_product(
     db.add(product)
     db.commit()
     app_cache.delete(PRODUCTS_CACHE_KEY)
+    app_cache.delete(ORDERS_CACHE_KEY)
     db.refresh(product)
 
     # New product starts at zero because stock is movement-derived only.
@@ -185,7 +188,7 @@ def create_inbound_order(
     db.commit()
 
     app_cache.delete(PRODUCTS_CACHE_KEY)
-
+    app_cache.delete(ORDERS_CACHE_KEY)
     db.refresh(entry)
 
     return StockEntryResponse.model_validate(entry)
@@ -238,6 +241,11 @@ def create_outbound_order(
 
 @router.get("/orders", response_model=list[OrderResponse])
 def list_orders(db: Session = Depends(get_db)):
+    cached_orders = app_cache.get(ORDERS_CACHE_KEY)
+
+    if cached_orders is not None:
+        return cached_orders
+
     results: list[OrderResponse] = []
 
     inbound_rows = db.exec(
@@ -298,5 +306,15 @@ def list_orders(db: Session = Depends(get_db)):
         )
 
     # Unified movement timeline, newest first.
-    results.sort(key=lambda item: item.created_at, reverse=True)
+    results.sort(
+    key=lambda item: item.created_at,
+    reverse=True,
+)
+
+    app_cache.set(
+        ORDERS_CACHE_KEY,
+        results,
+        ttl_seconds=ORDERS_CACHE_TTL_SECONDS,
+    )
+
     return results
