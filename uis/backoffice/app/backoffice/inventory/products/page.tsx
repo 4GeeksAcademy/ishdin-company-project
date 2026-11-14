@@ -57,14 +57,34 @@ export default function InventoryProductsPage() {
     void loadProducts();
   }, [loadProducts]);
 
-  const filteredProducts = useMemo(() => {
-    const value = query.trim().toLowerCase();
-    if (!value) return products;
-    return products.filter((product) =>
-      [product.name, product.sku, product.client_name, product.category, product.warehouse]
-        .some((field) => field.toLowerCase().includes(value)),
-    );
-  }, [products, query]);
+const searchableProducts = useMemo(
+  () =>
+    products.map((product) => ({
+      product,
+      searchText: [
+        product.name,
+        product.sku,
+        product.client_name,
+        product.category,
+        product.warehouse,
+      ]
+        .join(" ")
+        .toLowerCase(),
+    })),
+  [products],
+);
+
+const filteredProducts = useMemo(() => {
+  const value = query.trim().toLowerCase();
+
+  if (!value) {
+    return products;
+  }
+
+  return searchableProducts
+    .filter(({ searchText }) => searchText.includes(value))
+    .map(({ product }) => product);
+}, [products, query, searchableProducts]);
 
   return (
     <section className="space-y-5" aria-labelledby="products-heading">
