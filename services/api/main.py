@@ -1,7 +1,8 @@
 import logging
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -17,6 +18,17 @@ from seed import seed_suppliers
 
 
 logger = logging.getLogger(__name__)
+timing_logger = logging.getLogger("api.timing")
+timing_logger.setLevel(logging.INFO)
+
+if not timing_logger.handlers:
+    timing_handler = logging.StreamHandler()
+    timing_handler.setFormatter(
+        logging.Formatter("%(levelname)s:%(name)s:%(message)s")
+    )
+    timing_logger.addHandler(timing_handler)
+
+timing_logger.propagate = False
 
 
 @asynccontextmanager
@@ -67,6 +79,25 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next):
+    """Log the duration of every HTTP request for performance profiling."""
+    start = time.perf_counter()
+
+    response = await call_next(request)
+
+    duration_ms = (time.perf_counter() - start) * 1000
+
+    timing_logger.info(
+        "%s %s → %s | %.1fms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+
+    return response
 
 # Local development + GitHub Codespaces frontend access.
 app.add_middleware(

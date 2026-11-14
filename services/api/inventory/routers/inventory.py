@@ -1,5 +1,5 @@
 from typing import Any
-
+from services.api.cache import app_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlmodel import Session, select
@@ -21,7 +21,10 @@ from ..schemas import (
 from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
-
+PRODUCTS_CACHE_KEY = "inventory:products"
+PRODUCTS_CACHE_TTL_SECONDS = 30
+ORDERS_CACHE_KEY = "inventory:orders"
+ORDERS_CACHE_TTL_SECONDS = 60
 
 def _user_uuid(current_user: Any) -> str:
     """Extract the TinyDB user's UUID without coupling inventory to a SQL User model."""
@@ -91,8 +94,27 @@ def _sku_response(session: Session, sku: SKU) -> SKUResponse:
 
 @router.get("/products", response_model=list[SKUResponse])
 def list_products(db: Session = Depends(get_db)):
-    products = db.exec(select(SKU).order_by(SKU.id)).all()
-    return [_sku_response(db, product) for product in products]
+    cached_products = app_cache.get(PRODUCTS_CACHE_KEY)
+
+    if cached_products is not None:
+        return cached_products
+
+    products = db.exec(
+        select(SKU).order_by(SKU.id)
+    ).all()
+
+    response = [
+        _sku_response(db, product)
+        for product in products
+    ]
+
+    app_cache.set(
+        PRODUCTS_CACHE_KEY,
+        response,
+        ttl_seconds=PRODUCTS_CACHE_TTL_SECONDS,
+    )
+
+    return response
 
 
 @router.post(
@@ -123,6 +145,8 @@ def create_product(
     product = SKU(**payload.model_dump(mode="json"))
     db.add(product)
     db.commit()
+    app_cache.delete(PRODUCTS_CACHE_KEY)
+    app_cache.delete(ORDERS_CACHE_KEY)
     db.refresh(product)
 
     # New product starts at zero because stock is movement-derived only.
@@ -162,6 +186,9 @@ def create_inbound_order(
     )
     db.add(entry)
     db.commit()
+
+    app_cache.delete(PRODUCTS_CACHE_KEY)
+    app_cache.delete(ORDERS_CACHE_KEY)
     db.refresh(entry)
 
     return StockEntryResponse.model_validate(entry)
@@ -204,6 +231,9 @@ def create_outbound_order(
     )
     db.add(stock_exit)
     db.commit()
+
+    app_cache.delete(PRODUCTS_CACHE_KEY)
+    
     db.refresh(stock_exit)
 
     return StockExitResponse.model_validate(stock_exit)
@@ -211,6 +241,11 @@ def create_outbound_order(
 
 @router.get("/orders", response_model=list[OrderResponse])
 def list_orders(db: Session = Depends(get_db)):
+    cached_orders = app_cache.get(ORDERS_CACHE_KEY)
+
+    if cached_orders is not None:
+        return cached_orders
+
     results: list[OrderResponse] = []
 
     inbound_rows = db.exec(
@@ -271,5 +306,15 @@ def list_orders(db: Session = Depends(get_db)):
         )
 
     # Unified movement timeline, newest first.
-    results.sort(key=lambda item: item.created_at, reverse=True)
+    results.sort(
+    key=lambda item: item.created_at,
+    reverse=True,
+)
+
+    app_cache.set(
+        ORDERS_CACHE_KEY,
+        results,
+        ttl_seconds=ORDERS_CACHE_TTL_SECONDS,
+    )
+
     return results
