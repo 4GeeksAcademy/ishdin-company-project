@@ -1,0 +1,1493 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://trackflow.example/schemas/telemetry-event.schema.json",
+  "title": "TrackFlow Telemetry Event",
+  "description": "Standard TrackFlow telemetry envelope with event-specific property allowlists. All producers must validate before emission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "timestamp",
+    "sessionId",
+    "userId",
+    "event_type",
+    "schemaVersion",
+    "requestId",
+    "properties"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Globally unique event identifier; UUID recommended."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC ISO 8601 timestamp for when the event occurred."
+    },
+    "sessionId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Opaque session identifier. Null is allowed for process events with no user session."
+    },
+    "userId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Opaque authenticated TinyDB user UUID. Null for unauthenticated/process events; never email/name."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "inbound_order_created",
+        "outbound_order_created",
+        "stock_threshold_triggered",
+        "direct_stock_edit_rejected",
+        "inventory_discrepancy_detected",
+        "inventory_validation_failed",
+        "outbound_order_rejected",
+        "product_created",
+        "product_updated",
+        "login_succeeded",
+        "login_failed",
+        "session_expired",
+        "authorization_denied",
+        "section_viewed",
+        "workflow_started",
+        "workflow_completed",
+        "workflow_abandoned",
+        "api_latency_recorded",
+        "api_error_recorded",
+        "frontend_error_recorded",
+        "page_load_recorded",
+        "database_operation_slow",
+        "background_process_failed",
+        "integration_call_failed",
+        "rate_limit_triggered",
+        "request_validation_failed",
+        "telemetry_schema_rejected",
+        "telemetry_delivery_failed"
+      ],
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+      "description": "Stable entity_action taxonomy."
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Telemetry schema version, e.g. 1.0."
+    },
+    "requestId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Correlation ID joining frontend/backend/log activity. Null only when no request exists."
+    },
+    "properties": {
+      "type": "object",
+      "description": "Event-specific allowlisted payload."
+    }
+  },
+  "oneOf": [
+    {
+      "title": "inbound_order_created",
+      "description": "Emitted after an authenticated user successfully registers an inbound order that adds stock.",
+      "properties": {
+        "event_type": {
+          "const": "inbound_order_created"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse where stock was received. Allowed: los_angeles, zaragoza.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client that owns the SKU.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_category": {
+              "description": "fashion, electronics, or cosmetics.",
+              "type": "string",
+              "enum": [
+                "fashion",
+                "electronics",
+                "cosmetics"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "quantity": {
+              "description": "Quantity received; must be > 0.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "inbound_order_id": {
+              "description": "Identifier of the created inbound order.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "country": {
+              "description": "Derived warehouse country: US or ES, retained for future aggregation.",
+              "type": "string",
+              "enum": [
+                "US",
+                "ES"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "product_category",
+            "quantity",
+            "inbound_order_id",
+            "country"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "outbound_order_created",
+      "description": "Emitted after picking/dispatch is successfully registered and stock is reduced through an outbound order.",
+      "properties": {
+        "event_type": {
+          "const": "outbound_order_created"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse fulfilling the order: los_angeles or zaragoza.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client that owns the SKU.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_category": {
+              "description": "fashion, electronics, or cosmetics.",
+              "type": "string",
+              "enum": [
+                "fashion",
+                "electronics",
+                "cosmetics"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "quantity": {
+              "description": "Quantity dispatched; must be > 0.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "outbound_order_id": {
+              "description": "Identifier of the created outbound order.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "country": {
+              "description": "Derived warehouse country: US or ES.",
+              "type": "string",
+              "enum": [
+                "US",
+                "ES"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "product_category",
+            "quantity",
+            "outbound_order_id",
+            "country"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "stock_threshold_triggered",
+      "description": "Emitted when a SKU's available stock falls below the configured minimum threshold for that client.",
+      "properties": {
+        "event_type": {
+          "const": "stock_threshold_triggered"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse where the threshold was breached.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client owning the SKU.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_category": {
+              "description": "fashion, electronics, or cosmetics.",
+              "type": "string",
+              "enum": [
+                "fashion",
+                "electronics",
+                "cosmetics"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "quantity": {
+              "description": "Current calculated stock when the threshold fires.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "threshold_quantity": {
+              "description": "Configured minimum stock threshold.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "country": {
+              "description": "Derived warehouse country: US or ES.",
+              "type": "string",
+              "enum": [
+                "US",
+                "ES"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "product_category",
+            "quantity",
+            "threshold_quantity",
+            "country"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "direct_stock_edit_rejected",
+      "description": "Emitted whenever a user or process attempts to modify stock directly and the business rule rejects the operation.",
+      "properties": {
+        "event_type": {
+          "const": "direct_stock_edit_rejected"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse associated with the targeted stock record.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client owning the SKU.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_category": {
+              "description": "fashion, electronics, or cosmetics.",
+              "type": "string",
+              "enum": [
+                "fashion",
+                "electronics",
+                "cosmetics"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "quantity": {
+              "description": "Requested direct stock delta or attempted value.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "attempted_operation": {
+              "description": "Type of forbidden edit attempted, e.g. set/increment/decrement.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "actor_role": {
+              "description": "Application role of the authenticated actor.",
+              "type": "string",
+              "x-data-sensitivity": "low sensitivity"
+            },
+            "country": {
+              "description": "Derived warehouse country: US or ES.",
+              "type": "string",
+              "enum": [
+                "US",
+                "ES"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "product_category",
+            "quantity",
+            "attempted_operation",
+            "country"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "inventory_discrepancy_detected",
+      "description": "Emitted when a physical count or audit differs from system-calculated stock.",
+      "properties": {
+        "event_type": {
+          "const": "inventory_discrepancy_detected"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse where the discrepancy was found.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client owning the SKU.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_category": {
+              "description": "fashion, electronics, or cosmetics.",
+              "type": "string",
+              "enum": [
+                "fashion",
+                "electronics",
+                "cosmetics"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "quantity": {
+              "description": "System-calculated quantity at detection time.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "physical_quantity": {
+              "description": "Counted physical quantity.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "difference_quantity": {
+              "description": "physical_quantity - quantity.",
+              "type": "integer",
+              "x-data-sensitivity": "no"
+            },
+            "audit_id": {
+              "description": "Audit/count workflow identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "country": {
+              "description": "Derived warehouse country: US or ES.",
+              "type": "string",
+              "enum": [
+                "US",
+                "ES"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "product_category",
+            "quantity",
+            "physical_quantity",
+            "difference_quantity",
+            "country"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "inventory_validation_failed",
+      "description": "Emitted when an inventory product/order request fails business or input validation.",
+      "properties": {
+        "event_type": {
+          "const": "inventory_validation_failed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "entity_type": {
+              "description": "product, inbound_order, or outbound_order.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "entity_id": {
+              "description": "Existing entity identifier when available.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "SKU/product related to the failure, when applicable.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "warehouse": {
+              "description": "Associated warehouse when known.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "validation_code": {
+              "description": "Stable machine-readable validation code.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "field_name": {
+              "description": "Field associated with the failure.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "error_class": {
+              "description": "High-level validation category; never raw stack trace.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "entity_type",
+            "validation_code",
+            "error_class"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "outbound_order_rejected",
+      "description": "Emitted when an outbound order is rejected, for example because requested quantity exceeds available stock.",
+      "properties": {
+        "event_type": {
+          "const": "outbound_order_rejected"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse attempting fulfillment.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client owning the SKU.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_category": {
+              "description": "fashion, electronics, or cosmetics.",
+              "type": "string",
+              "enum": [
+                "fashion",
+                "electronics",
+                "cosmetics"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "quantity": {
+              "description": "Requested outbound quantity.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "available_stock": {
+              "description": "Calculated available stock when relevant.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "rejection_code": {
+              "description": "Stable reason such as insufficient_stock.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "product_category",
+            "quantity",
+            "rejection_code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "product_created",
+      "description": "Emitted after a new client SKU is created successfully.",
+      "properties": {
+        "event_type": {
+          "const": "product_created"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse associated with the SKU.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client owner.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "Created SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_category": {
+              "description": "fashion, electronics, or cosmetics.",
+              "type": "string",
+              "enum": [
+                "fashion",
+                "electronics",
+                "cosmetics"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "product_category"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "product_updated",
+      "description": "Emitted after permitted product metadata changes are saved; stock quantity changes are excluded.",
+      "properties": {
+        "event_type": {
+          "const": "product_updated"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "warehouse": {
+              "description": "Warehouse associated with the SKU.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            },
+            "client_id": {
+              "description": "B2B client owner.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "product_id": {
+              "description": "Updated SKU/product identifier.",
+              "type": "string",
+              "x-data-sensitivity": "pseudonymous business identifier"
+            },
+            "changed_fields": {
+              "description": "Allowlisted field names changed; values are not copied into telemetry.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true,
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "warehouse",
+            "client_id",
+            "product_id",
+            "changed_fields"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "login_succeeded",
+      "description": "Emitted when authentication succeeds.",
+      "properties": {
+        "event_type": {
+          "const": "login_succeeded"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "auth_method": {
+              "description": "Authentication method, e.g. password.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "actor_role": {
+              "description": "Role assigned to the authenticated user.",
+              "type": "string",
+              "x-data-sensitivity": "low sensitivity"
+            }
+          },
+          "required": [
+            "auth_method"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "login_failed",
+      "description": "Emitted on an unsuccessful login without recording passwords or raw credentials.",
+      "properties": {
+        "event_type": {
+          "const": "login_failed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "failure_code": {
+              "description": "Stable reason category such as invalid_credentials, inactive_user, rate_limited.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "auth_method": {
+              "description": "Authentication method attempted.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "user_key_hash": {
+              "description": "One-way keyed hash of normalized account identifier for safe repeat-attempt correlation.",
+              "type": "string",
+              "x-data-sensitivity": "sanitised sensitive identifier"
+            }
+          },
+          "required": [
+            "failure_code",
+            "auth_method"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "session_expired",
+      "description": "Emitted when a request or client action encounters an expired authenticated session/token.",
+      "properties": {
+        "event_type": {
+          "const": "session_expired"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "route_group": {
+              "description": "High-level route/feature area active at expiry.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "session_age_seconds": {
+              "description": "Approximate session age when expiry was detected.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "authorization_denied",
+      "description": "Emitted when an authenticated user attempts an action outside their permissions.",
+      "properties": {
+        "event_type": {
+          "const": "authorization_denied"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "route_group": {
+              "description": "High-level protected area.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "action": {
+              "description": "Requested action such as create/update/read.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "required_role": {
+              "description": "Role/policy required for the action.",
+              "type": "string",
+              "x-data-sensitivity": "low sensitivity"
+            },
+            "actor_role": {
+              "description": "Actor's effective role.",
+              "type": "string",
+              "x-data-sensitivity": "low sensitivity"
+            }
+          },
+          "required": [
+            "route_group",
+            "action"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "section_viewed",
+      "description": "Emitted when an operator successfully lands on a major backoffice section.",
+      "properties": {
+        "event_type": {
+          "const": "section_viewed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "section_name": {
+              "description": "Stable section identifier such as products, inbound, outbound, history, summary.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "previous_section": {
+              "description": "Previous allowlisted section identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "actor_role": {
+              "description": "Role of the current user.",
+              "type": "string",
+              "x-data-sensitivity": "low sensitivity"
+            }
+          },
+          "required": [
+            "section_name"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "workflow_started",
+      "description": "Emitted when an operator starts a defined multi-step workflow such as inbound or outbound order registration.",
+      "properties": {
+        "event_type": {
+          "const": "workflow_started"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "workflow_name": {
+              "description": "Stable workflow identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "warehouse": {
+              "description": "Warehouse selected/associated, if already known.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "workflow_name"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "workflow_completed",
+      "description": "Emitted when a tracked workflow reaches its intended successful outcome.",
+      "properties": {
+        "event_type": {
+          "const": "workflow_completed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "workflow_name": {
+              "description": "Stable workflow identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "duration_ms": {
+              "description": "Elapsed time from workflow_started to completion.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "warehouse": {
+              "description": "Warehouse associated with the completed workflow.",
+              "type": "string",
+              "enum": [
+                "los_angeles",
+                "zaragoza"
+              ],
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "workflow_name",
+            "duration_ms"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "workflow_abandoned",
+      "description": "Derived/emitted when a workflow starts but does not complete within a documented inactivity window.",
+      "properties": {
+        "event_type": {
+          "const": "workflow_abandoned"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "workflow_name": {
+              "description": "Stable workflow identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "last_step": {
+              "description": "Allowlisted last completed step identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "elapsed_ms": {
+              "description": "Approximate time from start until abandonment window closed.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "workflow_name"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "api_latency_recorded",
+      "description": "Emitted as an aggregated/sampled measurement of API request latency.",
+      "properties": {
+        "event_type": {
+          "const": "api_latency_recorded"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "route_template": {
+              "description": "Normalized route template, never raw URL with identifiers.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "http_method": {
+              "description": "HTTP method.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "status_class": {
+              "description": "2xx/3xx/4xx/5xx rather than exact response body.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "duration_ms": {
+              "description": "Request duration in milliseconds.",
+              "type": "number",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "route_template",
+            "http_method",
+            "status_class",
+            "duration_ms"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "api_error_recorded",
+      "description": "Emitted when a backend request returns an unexpected 5xx or classified internal failure.",
+      "properties": {
+        "event_type": {
+          "const": "api_error_recorded"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "route_template": {
+              "description": "Normalized route template.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "http_method": {
+              "description": "HTTP method.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "error_class": {
+              "description": "Sanitised stable exception/error category; no stack trace or message dump.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "status_code": {
+              "description": "HTTP status code, typically 5xx.",
+              "type": "integer",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "route_template",
+            "http_method",
+            "error_class",
+            "status_code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "frontend_error_recorded",
+      "description": "Emitted for uncaught frontend errors using a sanitised fingerprint instead of full message/context dumps.",
+      "properties": {
+        "event_type": {
+          "const": "frontend_error_recorded"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "section_name": {
+              "description": "Backoffice section where the error occurred.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "error_fingerprint": {
+              "description": "Stable sanitised hash/category for grouping equivalent errors.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "app_version": {
+              "description": "Frontend build/release identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "section_name",
+            "error_fingerprint"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "page_load_recorded",
+      "description": "Emitted as sampled page-load performance telemetry for major backoffice routes.",
+      "properties": {
+        "event_type": {
+          "const": "page_load_recorded"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "section_name": {
+              "description": "Major backoffice section.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "load_ms": {
+              "description": "Time until the defined usable/render milestone.",
+              "type": "number",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "app_version": {
+              "description": "Frontend build/release identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "section_name",
+            "load_ms"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "database_operation_slow",
+      "description": "Emitted when a Supabase/Postgres operation exceeds a defined slow-query threshold.",
+      "properties": {
+        "event_type": {
+          "const": "database_operation_slow"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "operation_name": {
+              "description": "Logical allowlisted operation name, not raw SQL.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "duration_ms": {
+              "description": "Database operation duration.",
+              "type": "number",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            },
+            "table_group": {
+              "description": "High-level table/entity group.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "operation_name",
+            "duration_ms"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "background_process_failed",
+      "description": "Emitted when an internal scheduled/background process fails.",
+      "properties": {
+        "event_type": {
+          "const": "background_process_failed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "process_name": {
+              "description": "Allowlisted background process identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "error_class": {
+              "description": "Sanitised stable failure category.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "attempt_number": {
+              "description": "Retry attempt number.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "process_name",
+            "error_class"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "integration_call_failed",
+      "description": "Emitted when a dependency/integration call used by the application fails or times out.",
+      "properties": {
+        "event_type": {
+          "const": "integration_call_failed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "integration_name": {
+              "description": "Allowlisted dependency name.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "operation_name": {
+              "description": "Allowlisted logical operation.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "failure_code": {
+              "description": "Stable timeout/unavailable/auth/etc. category.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "duration_ms": {
+              "description": "Elapsed time before failure.",
+              "type": "number",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "integration_name",
+            "operation_name",
+            "failure_code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "rate_limit_triggered",
+      "description": "Emitted when application rate limiting blocks or delays a request.",
+      "properties": {
+        "event_type": {
+          "const": "rate_limit_triggered"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "route_group": {
+              "description": "High-level protected area.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "limit_policy": {
+              "description": "Stable policy identifier.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "actor_key_hash": {
+              "description": "Keyed hash for repeat-actor correlation without emitting raw identity.",
+              "type": "string",
+              "x-data-sensitivity": "sanitised sensitive identifier"
+            }
+          },
+          "required": [
+            "route_group",
+            "limit_policy"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "request_validation_failed",
+      "description": "Emitted for malformed or schema-invalid API requests outside domain-specific inventory validation.",
+      "properties": {
+        "event_type": {
+          "const": "request_validation_failed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "route_template": {
+              "description": "Normalized route template.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "http_method": {
+              "description": "HTTP method.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "field_name": {
+              "description": "Top-level failing field when safe to record.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "validation_code": {
+              "description": "Stable validation category.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "route_template",
+            "http_method",
+            "validation_code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "telemetry_schema_rejected",
+      "description": "Emitted to a separate operational counter/log when an attempted telemetry event fails schema validation.",
+      "properties": {
+        "event_type": {
+          "const": "telemetry_schema_rejected"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "rejected_event_type": {
+              "description": "Event type that failed validation.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "schema_version": {
+              "description": "Schema version producer attempted to use.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "validation_code": {
+              "description": "Stable schema-validation failure category.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "rejected_event_type",
+            "schema_version",
+            "validation_code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    },
+    {
+      "title": "telemetry_delivery_failed",
+      "description": "Emitted/counted when telemetry cannot be delivered after configured retries.",
+      "properties": {
+        "event_type": {
+          "const": "telemetry_delivery_failed"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "event_type_failed": {
+              "description": "Type of event that could not be delivered.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "failure_code": {
+              "description": "Stable transport/storage failure category.",
+              "type": "string",
+              "x-data-sensitivity": "no"
+            },
+            "retry_count": {
+              "description": "Number of attempted deliveries.",
+              "type": "integer",
+              "minimum": 0,
+              "x-data-sensitivity": "no"
+            }
+          },
+          "required": [
+            "event_type_failed",
+            "failure_code",
+            "retry_count"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "event_type",
+        "properties"
+      ]
+    }
+  ]
+}
