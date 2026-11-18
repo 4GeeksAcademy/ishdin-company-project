@@ -8,6 +8,7 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
 
 export const AUTH_SESSION_KEY = "trackflow.auth.session";
+export const AUTH_SESSION_ID_KEY = "trackflow.auth.session_id";
 let redirectingToLogin = false;
 
 export class AuthSessionError extends Error {
@@ -37,6 +38,8 @@ export function setAuthSession(token: LoginTokenResponse): void {
       accessToken: token.access_token,
       expiresAt,
     }));
+    const sessionId = globalThis.crypto.randomUUID();
+    window.sessionStorage?.setItem(AUTH_SESSION_ID_KEY, sessionId);
   } catch {
     throw new Error("Your browser could not store the login session. Please try again.");
   }
@@ -48,6 +51,7 @@ export function clearAuthSession(): void {
 
   try {
     window.localStorage.removeItem(AUTH_SESSION_KEY);
+    window.sessionStorage?.removeItem(AUTH_SESSION_ID_KEY);
   } catch {
     // Do not expose browser-storage exception details. The next protected
     // request still validates the token with the backend before granting access.

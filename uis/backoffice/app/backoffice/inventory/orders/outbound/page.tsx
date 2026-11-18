@@ -10,6 +10,21 @@ import {
 } from "@/lib/inventory";
 import type { ExitType, InventoryProduct } from "@/lib/inventory";
 
+import { track } from "@/services/telemetry";
+
+import {
+  crossedStockThreshold,
+  inventoryEventProperties,
+  STOCK_THRESHOLD_QUANTITY,
+  toTelemetryWarehouse,
+} from "@/services/inventoryTelemetry";
+
+import {
+  completeWorkflow,
+  startWorkflow,
+  touchWorkflow,
+} from "@/services/workflowTelemetry";
+
 export default function OutboundOrderPage() {
   const {
     products,
@@ -27,6 +42,12 @@ export default function OutboundOrderPage() {
   const [formError, setFormError] = useState("");
   const [quantityError, setQuantityError] = useState("");
   const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    startWorkflow(
+      "outbound_order",
+    );
+  }, []);
 
   const enteredQuantity = Number(quantity);
   const exceedsStock =
@@ -72,8 +93,15 @@ export default function OutboundOrderPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [productId, loadingProducts]);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
+
+    touchWorkflow(
+      "outbound_order",
+      "submission_attempted",
+    );
     setFormError("");
     setQuantityError("");
     setSuccess("");
@@ -98,13 +126,41 @@ export default function OutboundOrderPage() {
 
     setSubmitting(true);
     try {
-      await createOutboundOrder({
-        sku_id: selectedProduct.id,
-        quantity: amount,
-        exit_type: exitType,
-        tracking_number: exitType === "dispatch" ? trackingNumber.trim() : null,
-        warehouse: selectedProduct.warehouse,
-      });
+
+      const stockBeforeOutbound =
+        selectedProduct.current_stock;
+
+      const createdOrder =
+        await createOutboundOrder({
+          sku_id: selectedProduct.id,
+          quantity: amount,
+          exit_type: exitType,
+          tracking_number:
+            exitType === "dispatch"
+             ? trackingNumber.trim()
+             : null,
+          warehouse: selectedProduct.warehouse,
+        });
+
+  track(
+    "outbound_order_created",
+    {
+      ...inventoryEventProperties(
+        selectedProduct,
+        amount,
+      ),
+
+      outbound_order_id:
+        String(createdOrder.id),
+   },
+ );
+
+      completeWorkflow(
+        "outbound_order",
+        toTelemetryWarehouse(
+          selectedProduct.warehouse,
+        ),
+      );
 
       const productName = selectedProduct.name;
       const productIdToRefresh = selectedProduct.id;
@@ -114,8 +170,32 @@ export default function OutboundOrderPage() {
 
       // Refresh stock after the write so the available quantity remains accurate.
       setLoadingStock(true);
+
       try {
-        setSelectedProduct(await getProduct(productIdToRefresh));
+        const refreshedProduct =
+          await getProduct(productIdToRefresh);
+
+        setSelectedProduct(refreshedProduct);
+
+        if (
+          crossedStockThreshold(
+            stockBeforeOutbound,
+            refreshedProduct.current_stock,
+          )
+        ) {
+          track(
+            "stock_threshold_triggered",
+            {
+              ...inventoryEventProperties(
+                refreshedProduct,
+                refreshedProduct.current_stock,
+              ),
+
+              threshold_quantity:
+                STOCK_THRESHOLD_QUANTITY,
+            },
+          );
+        }
       } finally {
         setLoadingStock(false);
       }
@@ -149,7 +229,18 @@ export default function OutboundOrderPage() {
           <select
             id="outbound-product"
             value={productId}
-            onChange={(event) => setProductId(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+
+              setProductId(value);
+
+              if (value) {
+                touchWorkflow(
+                  "outbound_order",
+                  "product_selected",
+                );
+              }
+            }}
             disabled={loadingProducts || submitting}
             className={inputClass}
           >
@@ -192,6 +283,13 @@ export default function OutboundOrderPage() {
               setQuantity(event.target.value);
               setQuantityError("");
               setSuccess("");
+
+              if (event.target.value) {
+                touchWorkflow(
+                  "outbound_order",
+                  "quantity_entered",
+                );
+              }
             }}
             disabled={submitting || loadingStock}
             aria-invalid={Boolean(quantityError || exceedsStock)}
@@ -216,6 +314,10 @@ export default function OutboundOrderPage() {
               setExitType(value);
               if (value === "loss") setTrackingNumber("");
               setFormError("");
+              touchWorkflow(
+                "outbound_order",
+                "exit_type_selected",
+              );
             }}
             disabled={submitting}
             className={inputClass}
@@ -231,7 +333,18 @@ export default function OutboundOrderPage() {
             <input
               id="tracking-number"
               value={trackingNumber}
-              onChange={(event) => setTrackingNumber(event.target.value)}
+              onChange={(event) => {
+                setTrackingNumber(
+                  event.target.value,
+                );
+
+                if (event.target.value.trim()) {
+                  touchWorkflow(
+                    "outbound_order",
+                    "tracking_number_entered",
+                  );
+                }
+              }} 
               disabled={submitting}
               className={inputClass}
               placeholder="e.g. 1Z999AA10123456784"

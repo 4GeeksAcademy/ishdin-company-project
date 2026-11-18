@@ -1,12 +1,24 @@
 from typing import Any
 from services.api.cache import app_cache
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    status,
+)
+from fastapi.responses import JSONResponse
+from uuid import uuid4
 from sqlalchemy import func
 from sqlmodel import Session, select
 
 from ..database import get_db
 from ..models import SKU, StockEntry, StockExit
 from ..schemas import (
+    DirectStockEditAttempt,
+    InventoryAuditRequest,
+    InventoryAuditResponse,
     OrderResponse,
     OrderSKUResponse,
     SKUCreate,
@@ -16,7 +28,7 @@ from ..schemas import (
     StockExitCreate,
     StockExitResponse,
 )
-
+from services.api.telemetry.emitter import track_server_event
 # Reuse the AUTH-01 dependency registered by the main API.
 from auth.dependencies import get_current_user
 
@@ -47,6 +59,36 @@ def _user_uuid(current_user: Any) -> str:
             detail="Authenticated user UUID is missing.",
         )
     return str(value)
+
+def _telemetry_warehouse(
+    warehouse: str,
+) -> str:
+    return (
+        "los_angeles"
+        if warehouse == "LA"
+        else "zaragoza"
+    )
+
+
+def _telemetry_country(
+    warehouse: str,
+) -> str:
+    return (
+        "US"
+        if warehouse == "LA"
+        else "ES"
+    )
+
+
+def _telemetry_client_id(
+    client_name: str,
+) -> str:
+    return "-".join(
+        client_name
+        .strip()
+        .lower()
+        .split()
+    )
 
 
 def _get_sku_or_404(session: Session, sku_id: int, *, lock: bool = False) -> SKU:
@@ -158,7 +200,205 @@ def get_product(id: int, db: Session = Depends(get_db)):
     product = _get_sku_or_404(db, id)
     return _sku_response(db, product)
 
+@router.patch("/products/{id}/stock")
+def reject_direct_stock_edit(
+    id: int,
+    payload: DirectStockEditAttempt,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_current_user),
+):
+    """
+    Direct stock modification is intentionally forbidden.
 
+    TrackFlow stock may change only through inbound and
+    outbound inventory movements.
+    """
+
+    product = _get_sku_or_404(
+        db,
+        id,
+    )
+
+    user_uuid = _user_uuid(
+        current_user,
+    )
+
+    request_id = (
+        request.headers.get("X-Request-ID")
+        or str(uuid4())
+    )
+
+    properties = {
+        "warehouse":
+            _telemetry_warehouse(
+                product.warehouse,
+            ),
+
+        "client_id":
+            _telemetry_client_id(
+                product.client_name,
+            ),
+
+        # Telemetry product_id means business SKU.
+        "product_id":
+            product.sku,
+
+        "product_category":
+            product.category,
+
+        "quantity":
+            payload.quantity,
+
+        "attempted_operation":
+            payload.attempted_operation,
+
+        "country":
+            _telemetry_country(
+                product.warehouse,
+            ),
+    }
+
+    actor_role = getattr(
+        current_user,
+        "role",
+        None,
+    )
+
+    if actor_role is not None:
+        properties["actor_role"] = (
+            actor_role.value
+            if hasattr(actor_role, "value")
+            else str(actor_role)
+        )
+
+    background_tasks.add_task(
+        track_server_event,
+        event_type="direct_stock_edit_rejected",
+        properties=properties,
+        user_id=user_uuid,
+        request_id=request_id,
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "detail": (
+                "Direct stock modification is not allowed. "
+                "Stock can only be changed through inbound "
+                "or outbound orders."
+            )
+        },
+        background=background_tasks,
+    )
+
+@router.post(
+    "/products/{id}/audit",
+    response_model=InventoryAuditResponse,
+)
+def audit_inventory_product(
+    id: int,
+    payload: InventoryAuditRequest,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_current_user),
+):
+    """
+    Compare a physical warehouse count with TrackFlow's
+    system-calculated stock.
+
+    This endpoint detects discrepancies but never changes stock.
+    """
+
+    product = _get_sku_or_404(
+        db,
+        id,
+    )
+
+    user_uuid = _user_uuid(
+        current_user,
+    )
+
+    system_quantity = _compute_current_stock(
+        db,
+        product.id,
+        product.warehouse,
+    )
+
+    physical_quantity = (
+        payload.physical_quantity
+    )
+
+    difference_quantity = (
+        physical_quantity
+        - system_quantity
+    )
+
+    audit_id = str(uuid4())
+
+    discrepancy_detected = (
+        difference_quantity != 0
+    )
+
+    if discrepancy_detected:
+        request_id = (
+            request.headers.get("X-Request-ID")
+            or str(uuid4())
+        )
+
+        background_tasks.add_task(
+            track_server_event,
+            event_type="inventory_discrepancy_detected",
+            properties={
+                "warehouse":
+                    _telemetry_warehouse(
+                        product.warehouse,
+                    ),
+
+                "client_id":
+                    _telemetry_client_id(
+                        product.client_name,
+                    ),
+
+                "product_id":
+                    product.sku,
+
+                "product_category":
+                    product.category,
+
+                # System-calculated stock
+                "quantity":
+                    system_quantity,
+
+                "physical_quantity":
+                    physical_quantity,
+
+                "difference_quantity":
+                    difference_quantity,
+
+                "audit_id":
+                    audit_id,
+
+                "country":
+                    _telemetry_country(
+                        product.warehouse,
+                    ),
+            },
+            user_id=user_uuid,
+            request_id=request_id,
+        )
+
+    return InventoryAuditResponse(
+        audit_id=audit_id,
+        product_id=product.sku,
+        system_quantity=system_quantity,
+        physical_quantity=physical_quantity,
+        difference_quantity=difference_quantity,
+        discrepancy_detected=discrepancy_detected,
+    )
+    
 @router.post(
     "/orders/inbound",
     response_model=StockEntryResponse,

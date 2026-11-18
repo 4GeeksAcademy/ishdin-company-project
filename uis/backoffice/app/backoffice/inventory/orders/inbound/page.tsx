@@ -1,9 +1,20 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { useInventoryProducts } from "@/hooks/useInventoryProducts";
 import { createInboundOrder, InventoryApiError } from "@/lib/inventory";
+import { track } from "@/services/telemetry";
+import {
+  inventoryEventProperties,
+  toTelemetryWarehouse,
+} from "@/services/inventoryTelemetry";
+
+import {
+  completeWorkflow,
+  startWorkflow,
+  touchWorkflow,
+} from "@/services/workflowTelemetry";
 
 export default function InboundOrderPage() {
   const {
@@ -23,9 +34,19 @@ export default function InboundOrderPage() {
     () => products.find((product) => product.id === Number(productId)) ?? null,
     [productId, products],
   );
-
+  
+  useEffect(() => {
+    startWorkflow(
+      "inbound_order",
+    );
+  }, []);
+  
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    touchWorkflow(
+      "inbound_order",
+      "submission_attempted",
+    );
     setError("");
     setSuccess("");
 
@@ -45,12 +66,32 @@ export default function InboundOrderPage() {
 
     setSubmitting(true);
     try {
-      await createInboundOrder({
-        sku_id: selectedProduct.id,
-        quantity: amount,
-        reference: reference.trim(),
-        warehouse: selectedProduct.warehouse,
-      });
+      const createdOrder =
+  await createInboundOrder({
+    sku_id: selectedProduct.id,
+    quantity: amount,
+    reference: reference.trim(),
+    warehouse: selectedProduct.warehouse,
+  });
+
+  track(
+    "inbound_order_created",
+    {
+    ...inventoryEventProperties(
+      selectedProduct,
+      amount,
+    ),
+
+    inbound_order_id:
+      String(createdOrder.id),
+   },
+  );
+      completeWorkflow(
+        "inbound_order",
+        toTelemetryWarehouse(
+          selectedProduct.warehouse,
+        ),
+      );
       setProductId("");
       setQuantity("");
       setReference("");
@@ -82,9 +123,18 @@ export default function InboundOrderPage() {
             id="inbound-product"
             value={productId}
             onChange={(event) => {
-              setProductId(event.target.value);
+              const value = event.target.value;
+
+              setProductId(value);
               setError("");
               setSuccess("");
+
+              if (value) {
+                touchWorkflow(
+                  "inbound_order",
+                  "product_selected",
+                );
+              }
             }}
             disabled={loadingProducts || submitting}
             className={inputClass}
@@ -115,7 +165,16 @@ export default function InboundOrderPage() {
             step="1"
             inputMode="numeric"
             value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
+            onChange={(event) => {
+              setQuantity(event.target.value);
+
+              if (event.target.value) {
+                touchWorkflow(
+                  "inbound_order",
+                  "quantity_entered",
+                );
+              }
+            }}
             disabled={submitting}
             className={inputClass}
             placeholder="e.g. 50"
@@ -127,7 +186,16 @@ export default function InboundOrderPage() {
           <input
             id="inbound-reference"
             value={reference}
-            onChange={(event) => setReference(event.target.value)}
+            onChange={(event) => {
+              setReference(event.target.value);
+
+              if (event.target.value.trim()) {
+                touchWorkflow(
+                  "inbound_order",
+                  "reference_entered",
+                );
+              }
+            }}
             disabled={submitting}
             className={inputClass}
             placeholder="e.g. PO-2024-0098"

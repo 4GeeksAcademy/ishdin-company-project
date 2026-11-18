@@ -14,6 +14,7 @@ from inventory.database import init_supabase_schema, seed_inventory_data
 from inventory.routers.inventory import router as inventory_router
 from services.api.incidents.routes import router as incident_manager_router
 from routes.suppliers import router as suppliers_router
+from services.api.telemetry.router import router as telemetry_router
 from seed import seed_suppliers
 
 
@@ -119,7 +120,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(inventory_router)
-
+app.include_router(telemetry_router)
 
 @app.get("/health", tags=["System"])
 def health() -> dict[str, str]:
