@@ -2,11 +2,113 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { track } from "@/services/telemetry";
 
 import { AccountApiError, getCurrentAccount } from "@/lib/accountApi";
-import { AUTH_SESSION_KEY, getAccessToken } from "@/lib/auth";
+import { AUTH_SESSION_KEY, clearAuthSession, getAuthSessionState, getAccessToken } from "@/lib/auth";
 
 const publicPaths = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
+
+function sectionNameFromPath(
+  pathname: string,
+): string | null {
+  if (pathname === "/") {
+    return "dashboard";
+  }
+
+  if (
+    pathname ===
+    "/backoffice/inventory/products"
+  ) {
+    return "products";
+  }
+
+  if (
+    pathname ===
+    "/backoffice/inventory/orders/inbound"
+  ) {
+    return "inbound";
+  }
+
+  if (
+    pathname ===
+    "/backoffice/inventory/orders/outbound"
+  ) {
+    return "outbound";
+  }
+
+  if (
+    pathname ===
+    "/backoffice/inventory/orders"
+  ) {
+    return "history";
+  }
+
+  if (pathname.startsWith("/incidents")) {
+    return "incidents";
+  }
+
+  if (
+    pathname.startsWith(
+      "/incident-analysis",
+    )
+  ) {
+    return "incident_analysis";
+  }
+
+  if (pathname.startsWith("/suppliers")) {
+    return "suppliers";
+  }
+
+  if (
+    pathname.startsWith(
+      "/account/profile",
+    )
+  ) {
+    return "account_profile";
+  }
+
+  if (
+    pathname.startsWith(
+      "/account/change-password",
+    )
+  ) {
+    return "change_password";
+  }
+
+  return null;
+}
+
+function routeGroupFromPath(
+  pathname: string,
+): string {
+  if (
+    pathname.startsWith(
+      "/backoffice/inventory",
+    )
+  ) {
+    return "inventory";
+  }
+
+  if (
+    pathname.startsWith("/incidents") ||
+    pathname.startsWith(
+      "/incident-analysis",
+    )
+  ) {
+    return "incidents";
+  }
+
+  if (pathname.startsWith("/suppliers")) {
+    return "suppliers";
+  }
+
+  if (pathname.startsWith("/account")) {
+    return "account";
+  }
+
+  return "backoffice";
+}
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,6 +116,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [authorizedPath, setAuthorizedPath] = useState<string | null>(null);
   const [validationError, setValidationError] = useState("");
   const redirecting = useRef(false);
+  const previousSection = useRef<string | null>(null);
+  const lastTrackedSection = useRef<string | null>(null);
   const isPublicPath = publicPaths.has(pathname);
 
   useEffect(() => {
@@ -26,19 +130,79 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     };
 
     const validateSession = async () => {
+      const sessionState =
+        getAuthSessionState();
+
+      if (sessionState === "expired") {
+        track(
+          "session_expired",
+          {
+            route_group:
+              routeGroupFromPath(pathname),
+          },
+        );
+
+        clearAuthSession();
+
+        if (!redirecting.current) {
+          redirecting.current = true;
+          redirectToLogin();
+        }
+
+        return;
+      }
+
+
       if (!getAccessToken()) {
         if (!redirecting.current) {
           redirecting.current = true;
           redirectToLogin();
         }
+
         return;
       }
 
       setValidationError("");
       try {
-        await getCurrentAccount();
+        const account =
+          await getCurrentAccount();
+
         redirecting.current = false;
+
         setAuthorizedPath(pathname);
+
+        const sectionName =
+          sectionNameFromPath(pathname);
+
+        if (
+          sectionName &&
+          lastTrackedSection.current !==
+          sectionName
+        ) {
+          const properties: Record<
+            string,
+            unknown
+          > = {
+            section_name: sectionName,
+            actor_role: account.role,
+          };
+
+          if (previousSection.current) {
+            properties.previous_section =
+              previousSection.current;
+          }
+
+          track(
+            "section_viewed",
+            properties,
+          );
+
+          previousSection.current =
+            sectionName;
+
+          lastTrackedSection.current =
+            sectionName;
+        }
       } catch (error) {
         if (error instanceof AccountApiError && error.status === 404) {
           redirecting.current = false;
@@ -46,9 +210,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           return;
         }
         setAuthorizedPath(null);
-        if (error instanceof AccountApiError && error.status === 401) {
+        if (error instanceof AccountApiError &&
+          error.status === 401
+        ) {
+          track(
+            "session_expired",
+            {
+              route_group:
+                routeGroupFromPath(pathname),
+            },
+          );
+
           redirecting.current = true;
           redirectToLogin();
+
           return;
         }
         setValidationError("Unable to verify your session. Check your connection and try again.");

@@ -6,8 +6,13 @@ export interface LoginTokenResponse {
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
-
+export type AuthSessionState =
+  | "active"
+  | "expired"
+  | "missing"
+  | "invalid";
 export const AUTH_SESSION_KEY = "trackflow.auth.session";
+export const AUTH_SESSION_ID_KEY = "trackflow.auth.session_id";
 let redirectingToLogin = false;
 
 export class AuthSessionError extends Error {
@@ -37,6 +42,8 @@ export function setAuthSession(token: LoginTokenResponse): void {
       accessToken: token.access_token,
       expiresAt,
     }));
+    const sessionId = globalThis.crypto.randomUUID();
+    window.sessionStorage?.setItem(AUTH_SESSION_ID_KEY, sessionId);
   } catch {
     throw new Error("Your browser could not store the login session. Please try again.");
   }
@@ -48,10 +55,51 @@ export function clearAuthSession(): void {
 
   try {
     window.localStorage.removeItem(AUTH_SESSION_KEY);
+    window.sessionStorage?.removeItem(AUTH_SESSION_ID_KEY);
   } catch {
     // Do not expose browser-storage exception details. The next protected
     // request still validates the token with the backend before granting access.
     console.warn("TrackFlow could not clear the stored authentication session.");
+  }
+}
+
+export function getAuthSessionState(): AuthSessionState {
+  if (typeof window === "undefined") {
+    return "missing";
+  }
+
+  let stored: string | null;
+
+  try {
+    stored =
+      window.localStorage.getItem(
+        AUTH_SESSION_KEY,
+      );
+  } catch {
+    return "invalid";
+  }
+
+  if (!stored) {
+    return "missing";
+  }
+
+  try {
+    const session = JSON.parse(stored);
+
+    if (
+      typeof session?.accessToken !== "string" ||
+      !Number.isFinite(session?.expiresAt)
+    ) {
+      return "invalid";
+    }
+
+    if (session.expiresAt <= Date.now()) {
+      return "expired";
+    }
+
+    return "active";
+  } catch {
+    return "invalid";
   }
 }
 
@@ -122,9 +170,38 @@ export async function authenticatedFetch(path: string, init?: RequestInit): Prom
     redirectToLogin();
     throw new AuthSessionError();
   }
-  const headers = new Headers(init?.headers);
-  headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(url.href, { ...init, headers, redirect: "error" });
+  const headers = new Headers(
+    init?.headers,
+  );
+
+  headers.set(
+    "Authorization",
+    `Bearer ${token}`,
+  );
+
+
+  /*
+   * Every authenticated browser request receives
+   * a correlation ID.
+   *
+   * If the caller already provided one, preserve it.
+   */
+  if (!headers.has("X-Request-ID")) {
+    headers.set(
+      "X-Request-ID",
+      globalThis.crypto.randomUUID(),
+    );
+  }
+
+
+  const response = await fetch(
+    url.href,
+    {
+      ...init,
+      headers,
+      redirect: "error",
+    },
+  );
   if (response.status === 401) {
     clearAuthSession();
     redirectToLogin();

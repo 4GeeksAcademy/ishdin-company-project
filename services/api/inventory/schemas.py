@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -45,7 +45,33 @@ class SKUResponse(BaseModel):
     # Computed from movements. Never stored in the SKU table.
     current_stock: int
 
+class DirectStockEditAttempt(RequestSchema):
+    """
+    Represents an attempt to bypass TrackFlow's movement-based
+    inventory rule.
 
+    This request is never allowed to modify stock.
+    """
+
+    quantity: int = Field(ge=0)
+
+    attempted_operation: Literal[
+        "set",
+        "increment",
+        "decrement",
+    ]
+class InventoryAuditRequest(RequestSchema):
+    physical_quantity: int = Field(ge=0)
+
+
+class InventoryAuditResponse(BaseModel):
+    audit_id: str
+    product_id: str
+    system_quantity: int
+    physical_quantity: int
+    difference_quantity: int
+    discrepancy_detected: bool
+    
 class StockEntryCreate(RequestSchema):
     sku_id: int = Field(gt=0)
     quantity: int = Field(gt=0)
