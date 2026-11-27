@@ -4,9 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { useInventoryProducts } from "@/hooks/useInventoryProducts";
 import { createInboundOrder, InventoryApiError } from "@/lib/inventory";
-import { track } from "@/services/telemetry";
+
 import {
-  inventoryEventProperties,
   toTelemetryWarehouse,
 } from "@/services/inventoryTelemetry";
 
@@ -66,26 +65,13 @@ export default function InboundOrderPage() {
 
     setSubmitting(true);
     try {
-      const createdOrder =
-  await createInboundOrder({
+      await createInboundOrder({
     sku_id: selectedProduct.id,
     quantity: amount,
     reference: reference.trim(),
     warehouse: selectedProduct.warehouse,
   });
 
-  track(
-    "inbound_order_created",
-    {
-    ...inventoryEventProperties(
-      selectedProduct,
-      amount,
-    ),
-
-    inbound_order_id:
-      String(createdOrder.id),
-   },
-  );
       completeWorkflow(
         "inbound_order",
         toTelemetryWarehouse(

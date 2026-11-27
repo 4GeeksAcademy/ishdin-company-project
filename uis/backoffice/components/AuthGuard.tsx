@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { track } from "@/services/telemetry";
 
 import { AccountApiError, getCurrentAccount } from "@/lib/accountApi";
-import { AUTH_SESSION_KEY, getAccessToken } from "@/lib/auth";
+import { AUTH_SESSION_KEY, clearAuthSession, getAuthSessionState, getAccessToken } from "@/lib/auth";
 
 const publicPaths = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
@@ -79,6 +79,37 @@ function sectionNameFromPath(
   return null;
 }
 
+function routeGroupFromPath(
+  pathname: string,
+): string {
+  if (
+    pathname.startsWith(
+      "/backoffice/inventory",
+    )
+  ) {
+    return "inventory";
+  }
+
+  if (
+    pathname.startsWith("/incidents") ||
+    pathname.startsWith(
+      "/incident-analysis",
+    )
+  ) {
+    return "incidents";
+  }
+
+  if (pathname.startsWith("/suppliers")) {
+    return "suppliers";
+  }
+
+  if (pathname.startsWith("/account")) {
+    return "account";
+  }
+
+  return "backoffice";
+}
+
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -99,11 +130,35 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     };
 
     const validateSession = async () => {
+      const sessionState =
+        getAuthSessionState();
+
+      if (sessionState === "expired") {
+        track(
+          "session_expired",
+          {
+            route_group:
+              routeGroupFromPath(pathname),
+          },
+        );
+
+        clearAuthSession();
+
+        if (!redirecting.current) {
+          redirecting.current = true;
+          redirectToLogin();
+        }
+
+        return;
+      }
+
+
       if (!getAccessToken()) {
         if (!redirecting.current) {
           redirecting.current = true;
           redirectToLogin();
         }
+
         return;
       }
 
@@ -155,9 +210,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           return;
         }
         setAuthorizedPath(null);
-        if (error instanceof AccountApiError && error.status === 401) {
+        if (error instanceof AccountApiError &&
+          error.status === 401
+        ) {
+          track(
+            "session_expired",
+            {
+              route_group:
+                routeGroupFromPath(pathname),
+            },
+          );
+
           redirecting.current = true;
           redirectToLogin();
+
           return;
         }
         setValidationError("Unable to verify your session. Check your connection and try again.");

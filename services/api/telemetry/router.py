@@ -41,11 +41,21 @@ def receive_telemetry(batch: TelemetryBatch) -> dict[str, int]:
         for event in batch.events
     ]
 
+    request_ids = [
+        event.requestId
+        for event in batch.events
+    ]
+
     logger.info(
-        "Telemetry batch received: count=%s event_types=%s",
-        len(batch.events),
-        event_types,
-    )
+    (
+        "Telemetry batch received: "
+        "count=%s event_types=%s "
+        "request_ids=%s"
+    ),
+    len(batch.events),
+    event_types,
+    request_ids,
+)
 
     return {
         "received": len(batch.events),

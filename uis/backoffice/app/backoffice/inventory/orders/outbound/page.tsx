@@ -10,12 +10,7 @@ import {
 } from "@/lib/inventory";
 import type { ExitType, InventoryProduct } from "@/lib/inventory";
 
-import { track } from "@/services/telemetry";
-
 import {
-  crossedStockThreshold,
-  inventoryEventProperties,
-  STOCK_THRESHOLD_QUANTITY,
   toTelemetryWarehouse,
 } from "@/services/inventoryTelemetry";
 
@@ -127,10 +122,7 @@ export default function OutboundOrderPage() {
     setSubmitting(true);
     try {
 
-      const stockBeforeOutbound =
-        selectedProduct.current_stock;
-
-      const createdOrder =
+          
         await createOutboundOrder({
           sku_id: selectedProduct.id,
           quantity: amount,
@@ -142,19 +134,7 @@ export default function OutboundOrderPage() {
           warehouse: selectedProduct.warehouse,
         });
 
-  track(
-    "outbound_order_created",
-    {
-      ...inventoryEventProperties(
-        selectedProduct,
-        amount,
-      ),
-
-      outbound_order_id:
-        String(createdOrder.id),
-   },
- );
-
+  
       completeWorkflow(
         "outbound_order",
         toTelemetryWarehouse(
@@ -177,25 +157,7 @@ export default function OutboundOrderPage() {
 
         setSelectedProduct(refreshedProduct);
 
-        if (
-          crossedStockThreshold(
-            stockBeforeOutbound,
-            refreshedProduct.current_stock,
-          )
-        ) {
-          track(
-            "stock_threshold_triggered",
-            {
-              ...inventoryEventProperties(
-                refreshedProduct,
-                refreshedProduct.current_stock,
-              ),
-
-              threshold_quantity:
-                STOCK_THRESHOLD_QUANTITY,
-            },
-          );
-        }
+        
       } finally {
         setLoadingStock(false);
       }

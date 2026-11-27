@@ -6,6 +6,37 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { getAccessToken, getPostLoginPath, setAuthSession } from "@/lib/auth";
 import { AccountApiError, loginUser } from "@/lib/accountApi";
+import { track } from "@/services/telemetry";
+
+function loginFailureCode(
+  cause: unknown,
+): string {
+  if (!(cause instanceof AccountApiError)) {
+    return "unexpected_error";
+  }
+
+  if (cause.status === 401) {
+    return "invalid_credentials";
+  }
+
+  if (cause.status === 403) {
+    return "inactive_user";
+  }
+
+  if (cause.status === 429) {
+    return "rate_limited";
+  }
+
+  if (cause.status === 0) {
+    return "network_error";
+  }
+
+  if (cause.status >= 500) {
+    return "auth_service_error";
+  }
+
+  return "auth_request_failed";
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,9 +63,25 @@ export default function LoginPage() {
     try {
       const token = await loginUser(email.trim(), password);
       setAuthSession(token);
+      track(
+        "login_succeeded",
+        {
+          auth_method: "password",
+        },
+      );
       router.replace(getPostLoginPath());
       router.refresh();
     } catch (cause) {
+      track(
+        "login_failed",
+        {
+          failure_code:
+            loginFailureCode(cause),
+
+          auth_method: "password",
+        },
+      );
+
       setError(
         cause instanceof AccountApiError
           ? cause.message
