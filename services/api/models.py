@@ -4,6 +4,10 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+class HealthResponse(BaseModel):
+    """Response returned by application health-check endpoints."""
+
+    status: str
 
 class SupplierStatus(str, Enum):
     ACTIVE = "active"

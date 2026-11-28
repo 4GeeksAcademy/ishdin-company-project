@@ -8,6 +8,7 @@ from app.api.incidents import router as incidents_router
 from auth.routes.auth import router as auth_router
 from auth.routes.profiles import router as profiles_router
 from auth.routes.users import router as users_router
+from models import HealthResponse
 from services.api.incidents.routes import router as incident_manager_router
 from routes.suppliers import router as suppliers_router
 from seed import seed_suppliers
@@ -74,6 +75,10 @@ app.include_router(users_router)
 app.include_router(profiles_router)
 
 
-@app.get("/health", tags=["System"])
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["System"],
+)
+def health() -> HealthResponse:
+    return HealthResponse(status="ok")

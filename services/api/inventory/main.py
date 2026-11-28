@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from .database import init_supabase_schema, seed_inventory_data
 from .routers.inventory import router as inventory_router
+from models import HealthResponse
 
 
 @asynccontextmanager
@@ -24,6 +25,6 @@ app = FastAPI(
 app.include_router(inventory_router)
 
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
+@app.get("/health", response_model=HealthResponse)
+def health_check() -> HealthResponse:
+    return HealthResponse(status="ok")
