@@ -6,6 +6,7 @@ from tinydb import Query
 from auth.database import users_table
 from auth.models import (
     UserCreate,
+    UserListItem,
     UserResponse,
     UserRole,
     UserStored,
@@ -35,6 +36,17 @@ def _to_user_response(document) -> UserResponse:
         is_active=stored.is_active,
         role=stored.role,
         created_at=stored.created_at,
+    )
+
+
+def _to_user_list_item(document) -> UserListItem:
+    stored = _to_user_stored(document)
+
+    return UserListItem(
+        id=stored.id,
+        email=stored.email,
+        is_active=stored.is_active,
+        role=stored.role,
     )
 
 
@@ -135,8 +147,8 @@ def create_user(payload: UserCreate):
     return _to_user_response(document), profile
 
 
-def list_users() -> list[UserResponse]:
-    return [_to_user_response(document) for document in users_table.all()]
+def list_users() -> list[UserListItem]:
+    return [_to_user_list_item(document) for document in users_table.all()]
 
 
 def update_user(

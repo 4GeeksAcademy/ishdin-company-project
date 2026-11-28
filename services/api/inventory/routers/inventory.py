@@ -22,6 +22,7 @@ from ..schemas import (
     OrderResponse,
     OrderSKUResponse,
     SKUCreate,
+    SKUListItem,
     SKUResponse,
     StockEntryCreate,
     StockEntryResponse,
@@ -135,8 +136,26 @@ def _sku_response(session: Session, sku: SKU) -> SKUResponse:
     )
 
 
-@router.get("/products", response_model=list[SKUResponse])
-def list_products(db: Session = Depends(get_db)):
+def _sku_list_item(session: Session, sku: SKU) -> SKUListItem:
+    return SKUListItem(
+        id=sku.id,
+        name=sku.name,
+        sku=sku.sku,
+        client_name=sku.client_name,
+        category=sku.category,
+        warehouse=sku.warehouse,
+        current_stock=_compute_current_stock(
+            session,
+            sku.id,
+            sku.warehouse,
+        ),
+    )
+
+
+@router.get("/products", response_model=list[SKUListItem])
+def list_products(
+    db: Session = Depends(get_db),
+) -> list[SKUListItem]:
     cached_products = app_cache.get(PRODUCTS_CACHE_KEY)
 
     if cached_products is not None:
@@ -147,7 +166,7 @@ def list_products(db: Session = Depends(get_db)):
     ).all()
 
     response = [
-        _sku_response(db, product)
+        _sku_list_item(db, product)
         for product in products
     ]
 

@@ -45,6 +45,21 @@ class SKUResponse(BaseModel):
     # Computed from movements. Never stored in the SKU table.
     current_stock: int
 
+
+class SKUListItem(BaseModel):
+    """Focused product projection used by inventory collection views."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    sku: str
+    client_name: str
+    category: Category
+    warehouse: Warehouse
+    current_stock: int
+
+
 class DirectStockEditAttempt(RequestSchema):
     """
     Represents an attempt to bypass TrackFlow's movement-based

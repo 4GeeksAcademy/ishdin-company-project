@@ -50,6 +50,13 @@ class IncidentResponse(IncidentStored):
     pass
 
 
+class IncidentListItem(IncidentBase):
+    """Focused incident projection used by the incident list."""
+
+    id: UUID
+    created_at: datetime
+
+
 class IncidentStatusUpdate(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 

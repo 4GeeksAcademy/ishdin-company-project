@@ -41,6 +41,17 @@ class UserResponse(BaseModel):
     created_at: datetime
 
 
+class UserListItem(BaseModel):
+    """Focused user projection used by the user directory."""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    id: int
+    email: EmailStr
+    is_active: bool
+    role: UserRole
+
+
 class UserUpdate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 

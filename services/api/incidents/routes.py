@@ -14,6 +14,7 @@ from packages.shared.incidents import (
 from services.api.incidents.errors import IncidentAPIRoute
 from services.api.incidents.models import (
     IncidentCreate,
+    IncidentListItem,
     IncidentResponse,
     IncidentStatusUpdate,
     IncidentSummary,
@@ -53,7 +54,7 @@ def create_incident(
 
 @router.get(
     "",
-    response_model=list[IncidentResponse],
+    response_model=list[IncidentListItem],
     summary="List and filter incidents",
 )
 def list_incidents(
@@ -65,8 +66,8 @@ def list_incidents(
     branch: IncidentBranch | None = Query(default=None),
     category: IncidentCategory | None = Query(default=None),
     current_user: UserStored = Depends(get_current_user),
-) -> list[IncidentResponse]:
-    return incident_repository.list(
+) -> list[IncidentListItem]:
+    incidents = incident_repository.list(
         status=(
             incident_status.value
             if incident_status is not None
@@ -76,6 +77,20 @@ def list_incidents(
         branch=branch.value if branch is not None else None,
         category=category.value if category is not None else None,
     )
+
+    return [
+        IncidentListItem(
+            id=incident.id,
+            title=incident.title,
+            description=incident.description,
+            category=incident.category,
+            status=incident.status,
+            origin=incident.origin,
+            branch=incident.branch,
+            created_at=incident.created_at,
+        )
+        for incident in incidents
+    ]
 
 
 @router.get(

@@ -6,7 +6,7 @@ from auth.services.password_lock import password_change_lock
 from auth.models import (
     MessageResponse,
     UserCreate,
-    UserRegistrationResponse,
+    UserListItem,
     UserResponse,
     UserRole,
     UserStored,
@@ -70,12 +70,12 @@ def register_user(payload: UserCreate) -> MessageResponse:
 
 @router.get(
     "",
-    response_model=list[UserResponse],
+    response_model=list[UserListItem],
     summary="List all users",
 )
 def get_users(
     current_user: UserStored = Depends(get_current_user),
-) -> list[UserResponse]:
+) -> list[UserListItem]:
     return list_users()
 
 

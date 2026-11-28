@@ -3,6 +3,7 @@ import type {
   Incident,
   IncidentCreateInput,
   IncidentFilters,
+  IncidentListItem,
   IncidentStatus,
   IncidentSummary,
 } from "@/types/incident";
@@ -129,7 +130,7 @@ export const getIncidents = (filters: IncidentFilters = {}) => {
   if (filters.branch) params.set("branch", filters.branch);
 
   const query = params.toString();
-  return request<Incident[]>(
+  return request<IncidentListItem[]>(
     `/api/incidents${query ? `?${query}` : ""}`,
   );
 };

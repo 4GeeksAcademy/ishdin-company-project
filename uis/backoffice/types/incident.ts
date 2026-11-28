@@ -39,6 +39,17 @@ export interface Incident {
   updated_at: string;
 }
 
+export interface IncidentListItem {
+  id: string;
+  title: string;
+  description: string;
+  category: IncidentCategory;
+  status: IncidentStatus;
+  origin: IncidentOrigin;
+  branch: IncidentBranch;
+  created_at: string;
+}
+
 export interface IncidentCreateInput {
   title: string;
   description: string;

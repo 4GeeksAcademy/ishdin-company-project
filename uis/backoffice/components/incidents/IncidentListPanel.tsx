@@ -19,9 +19,9 @@ import {
   updateIncidentStatus,
 } from "@/lib/incidentApi";
 import type {
-  Incident,
   IncidentBranch,
   IncidentFilters,
+  IncidentListItem,
   IncidentOrigin,
   IncidentStatus,
 } from "@/types/incident";
@@ -41,7 +41,7 @@ export const IncidentListPanel = ({
   refreshKey = 0,
   onChanged,
 }: Props) => {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidents, setIncidents] = useState<IncidentListItem[]>([]);
   const [filters, setFilters] = useState<IncidentFilters>(emptyFilters);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -70,7 +70,7 @@ export const IncidentListPanel = ({
   }, [load, refreshKey]);
 
   const changeStatus = async (
-    incident: Incident,
+    incident: IncidentListItem,
     nextStatus: IncidentStatus,
   ) => {
     const previousStatus = incident.status;
